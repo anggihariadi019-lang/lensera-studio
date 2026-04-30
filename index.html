@@ -229,6 +229,7 @@
       <div class="nav-item" onclick="goPage('projects',this)"><span class="nav-icon">▦</span> Projects <span class="nav-badge" id="nb-active">0</span></div>
       <div class="nav-item" onclick="goPage('schedule',this)"><span class="nav-icon">◷</span> Jadwal</div>
       <div class="nav-item" onclick="goPage('logs',this)"><span class="nav-icon">≡</span> Activity Log</div>
+      <div class="nav-item" onclick="goPage('settings',this)"><span class="nav-icon">⚙</span> Pengaturan</div>
     </nav>
     <div class="sidebar-footer">
       <div class="sync-status"><span class="sync-dot" id="sync-dot"></span><span id="sync-text">Tersambung</span></div>
@@ -359,6 +360,54 @@
       </div>
     </div>
 
+    <!-- SETTINGS -->
+    <div class="page" id="page-settings">
+      <div class="page-title">Pengaturan</div>
+      <div class="page-sub">Kelola tipe sesi dan paket sesuai kebutuhan studio</div>
+      <div class="g2" style="align-items:start">
+
+        <!-- TIPE SESI -->
+        <div class="card">
+          <div class="sec-head">
+            <div class="sec-title">🎭 Tipe Sesi</div>
+            <span class="badge b-purple" id="sesi-count">0 sesi</span>
+          </div>
+          <div id="sesi-list" style="margin-bottom:1rem"></div>
+          <div style="border-top:1px solid var(--border);padding-top:.875rem">
+            <div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:.5rem">Tambah Tipe Sesi Baru</div>
+            <div style="display:flex;gap:.5rem">
+              <input type="text" id="new-sesi-name" placeholder="Contoh: Graduation, Cosplay..." style="flex:1">
+              <button class="btn btn-sm btn-primary" onclick="addSesi()">+ Tambah</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- PAKET -->
+        <div class="card">
+          <div class="sec-head">
+            <div class="sec-title">📦 Paket</div>
+            <span class="badge b-neon" id="paket-count">0 paket</span>
+          </div>
+          <div id="paket-list" style="margin-bottom:1rem"></div>
+          <div style="border-top:1px solid var(--border);padding-top:.875rem">
+            <div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:.5rem">Tambah Paket Baru</div>
+            <div style="display:grid;grid-template-columns:1fr auto auto;gap:.5rem;align-items:end">
+              <div>
+                <div style="font-size:11px;color:var(--text3);margin-bottom:4px">Nama Paket</div>
+                <input type="text" id="new-paket-name" placeholder="Contoh: Diamond">
+              </div>
+              <div>
+                <div style="font-size:11px;color:var(--text3);margin-bottom:4px">Durasi</div>
+                <input type="text" id="new-paket-dur" placeholder="3 Jam" style="width:90px">
+              </div>
+              <button class="btn btn-sm btn-primary" onclick="addPaket()" style="white-space:nowrap">+ Tambah</button>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
     <!-- LOGS -->
     <div class="page" id="page-logs">
       <div class="page-title">Activity Log</div>
@@ -436,6 +485,7 @@ function goPage(id,el){
   if(id==='projects')loadProjects();
   if(id==='logs')loadLogs();
   if(id==='schedule'){document.getElementById('slot-date').value=today();loadSlots();}
+  if(id==='settings'){renderSesiList();renderPaketList();}
 }
 
 // ─── UTILS ───────────────────────────────────────────────────────────────────
@@ -591,13 +641,13 @@ async function loadProjects(){
             <div>
               <div style="font-size:11px;color:var(--text3);margin-bottom:4px;text-transform:uppercase;letter-spacing:.5px">Tipe Sesi</div>
               <select id="ep-type-${p.id}" style="font-size:12px;padding:6px 10px">
-                ${['Prewedding','Portrait','Produk','Event','Family','Maternity','Lainnya'].map(t=>`<option${p.session_type===t?' selected':''}>${t}</option>`).join('')}
+                ${getSesiList().map(t=>`<option${p.session_type===t?' selected':''}>${t}</option>`).join('')}
               </select>
             </div>
             <div>
               <div style="font-size:11px;color:var(--text3);margin-bottom:4px;text-transform:uppercase;letter-spacing:.5px">Paket</div>
               <select id="ep-pkg-${p.id}" style="font-size:12px;padding:6px 10px">
-                ${['Silver – 2 Jam','Gold – 4 Jam','Platinum – Full Day'].map(t=>`<option${p.package===t?' selected':''}>${t}</option>`).join('')}
+                ${getPaketList().map(t=>`<option${p.package===paketLabel(t)?' selected':''}>${paketLabel(t)}</option>`).join('')}
               </select>
             </div>
             <div>
@@ -773,9 +823,191 @@ async function loadLogs(){
   }catch(e){ toast('Gagal load log','error'); }
 }
 
-// ─── INIT ────────────────────────────────────────────────────────────────────
+// ─── SETTINGS: TIPE SESI & PAKET ────────────────────────────────────────────
+
+const DEFAULT_SESI = ['Prewedding','Portrait','Produk','Event','Family','Maternity','Lainnya'];
+const DEFAULT_PAKET = [
+  {name:'Silver', dur:'2 Jam'},
+  {name:'Gold', dur:'4 Jam'},
+  {name:'Platinum', dur:'Full Day'}
+];
+
+function getSesiList(){
+  try{ return JSON.parse(localStorage.getItem('lensera_sesi')||'null') || DEFAULT_SESI.slice(); }
+  catch(e){ return DEFAULT_SESI.slice(); }
+}
+function saveSesiList(list){
+  localStorage.setItem('lensera_sesi', JSON.stringify(list));
+}
+function getPaketList(){
+  try{ return JSON.parse(localStorage.getItem('lensera_paket')||'null') || DEFAULT_PAKET.slice(); }
+  catch(e){ return DEFAULT_PAKET.slice(); }
+}
+function savePaketList(list){
+  localStorage.setItem('lensera_paket', JSON.stringify(list));
+}
+function paketLabel(p){ return p.name + (p.dur ? ' – ' + p.dur : ''); }
+
+function renderSesiList(){
+  const list = getSesiList();
+  document.getElementById('sesi-count').textContent = list.length + ' sesi';
+  let html = '';
+  list.forEach((s, i) => {
+    html += `<div style="display:flex;align-items:center;gap:.5rem;padding:7px 0;border-bottom:1px solid var(--border)">
+      <div id="sesi-view-${i}" style="flex:1;display:flex;align-items:center;gap:.5rem">
+        <span style="font-size:13px;color:var(--text)">${s}</span>
+      </div>
+      <div id="sesi-edit-${i}" style="flex:1;display:none">
+        <input type="text" id="sesi-input-${i}" value="${s}" style="font-size:12px;padding:5px 8px">
+      </div>
+      <button class="btn btn-sm" style="color:var(--accent2);border-color:rgba(124,106,247,.3);padding:3px 8px;font-size:11px" onclick="toggleSesiEdit(${i})">✎</button>
+      <button class="btn btn-sm btn-primary" id="sesi-save-btn-${i}" style="display:none;padding:3px 10px;font-size:11px" onclick="saveSesiEdit(${i})">Simpan</button>
+      <button class="btn btn-sm btn-danger" style="padding:3px 8px;font-size:11px" onclick="deleteSesi(${i})">×</button>
+    </div>`;
+  });
+  if(!html) html = '<div class="empty" style="padding:1rem">Belum ada tipe sesi. Tambahkan dulu!</div>';
+  document.getElementById('sesi-list').innerHTML = html;
+  refreshSesiDropdowns();
+}
+
+function toggleSesiEdit(i){
+  const view = document.getElementById('sesi-view-'+i);
+  const edit = document.getElementById('sesi-edit-'+i);
+  const saveBtn = document.getElementById('sesi-save-btn-'+i);
+  const isEditing = edit.style.display !== 'none';
+  view.style.display = isEditing ? 'flex' : 'none';
+  edit.style.display = isEditing ? 'none' : 'block';
+  saveBtn.style.display = isEditing ? 'none' : 'inline-flex';
+}
+
+function saveSesiEdit(i){
+  const list = getSesiList();
+  const val = document.getElementById('sesi-input-'+i).value.trim();
+  if(!val){ toast('Nama sesi tidak boleh kosong!','error'); return; }
+  list[i] = val;
+  saveSesiList(list);
+  toast('Tipe sesi diperbarui!','success');
+  renderSesiList();
+}
+
+function deleteSesi(i){
+  const list = getSesiList();
+  showModal('Hapus Tipe Sesi', 'Hapus "'+list[i]+'"? Booking yang sudah ada tidak terpengaruh.', ()=>{
+    list.splice(i,1);
+    saveSesiList(list);
+    toast('Tipe sesi dihapus','info');
+    renderSesiList();
+  });
+}
+
+function addSesi(){
+  const input = document.getElementById('new-sesi-name');
+  const val = input.value.trim();
+  if(!val){ toast('Isi nama tipe sesi dulu!','error'); return; }
+  const list = getSesiList();
+  if(list.includes(val)){ toast('Tipe sesi sudah ada!','error'); return; }
+  list.push(val);
+  saveSesiList(list);
+  input.value = '';
+  toast('Tipe sesi "'+val+'" ditambahkan!','success');
+  renderSesiList();
+}
+
+function refreshSesiDropdowns(){
+  const list = getSesiList();
+  ['f-type'].forEach(id => {
+    const el = document.getElementById(id);
+    if(!el) return;
+    const cur = el.value;
+    el.innerHTML = list.map(s=>`<option${s===cur?' selected':''}>${s}</option>`).join('');
+  });
+}
+
+// ─── PAKET ───────────────────────────────────────────────────────────────────
+function renderPaketList(){
+  const list = getPaketList();
+  document.getElementById('paket-count').textContent = list.length + ' paket';
+  let html = '';
+  list.forEach((p, i) => {
+    html += `<div style="display:flex;align-items:center;gap:.5rem;padding:7px 0;border-bottom:1px solid var(--border)">
+      <div id="paket-view-${i}" style="flex:1;display:flex;align-items:center;gap:6px">
+        <span style="font-size:13px;color:var(--text);font-weight:500">${p.name}</span>
+        ${p.dur ? `<span class="badge b-gray" style="font-size:10px">${p.dur}</span>` : ''}
+      </div>
+      <div id="paket-edit-${i}" style="flex:1;display:none;gap:.4rem">
+        <input type="text" id="paket-name-${i}" value="${p.name}" placeholder="Nama" style="font-size:12px;padding:5px 8px;width:50%">
+        <input type="text" id="paket-dur-${i}" value="${p.dur||''}" placeholder="Durasi" style="font-size:12px;padding:5px 8px;width:50%">
+      </div>
+      <button class="btn btn-sm" style="color:var(--accent2);border-color:rgba(124,106,247,.3);padding:3px 8px;font-size:11px" onclick="togglePaketEdit(${i})">✎</button>
+      <button class="btn btn-sm btn-primary" id="paket-save-btn-${i}" style="display:none;padding:3px 10px;font-size:11px" onclick="savePaketEdit(${i})">Simpan</button>
+      <button class="btn btn-sm btn-danger" style="padding:3px 8px;font-size:11px" onclick="deletePaket(${i})">×</button>
+    </div>`;
+  });
+  if(!html) html = '<div class="empty" style="padding:1rem">Belum ada paket. Tambahkan dulu!</div>';
+  document.getElementById('paket-list').innerHTML = html;
+  refreshPaketDropdowns();
+}
+
+function togglePaketEdit(i){
+  const view = document.getElementById('paket-view-'+i);
+  const edit = document.getElementById('paket-edit-'+i);
+  const saveBtn = document.getElementById('paket-save-btn-'+i);
+  const isEditing = edit.style.display !== 'none';
+  view.style.display = isEditing ? 'flex' : 'none';
+  edit.style.display = isEditing ? 'none' : 'flex';
+  saveBtn.style.display = isEditing ? 'none' : 'inline-flex';
+}
+
+function savePaketEdit(i){
+  const list = getPaketList();
+  const name = document.getElementById('paket-name-'+i).value.trim();
+  const dur = document.getElementById('paket-dur-'+i).value.trim();
+  if(!name){ toast('Nama paket tidak boleh kosong!','error'); return; }
+  list[i] = {name, dur};
+  savePaketList(list);
+  toast('Paket diperbarui!','success');
+  renderPaketList();
+}
+
+function deletePaket(i){
+  const list = getPaketList();
+  showModal('Hapus Paket', 'Hapus paket "'+paketLabel(list[i])+'"? Booking yang sudah ada tidak terpengaruh.', ()=>{
+    list.splice(i,1);
+    savePaketList(list);
+    toast('Paket dihapus','info');
+    renderPaketList();
+  });
+}
+
+function addPaket(){
+  const nameEl = document.getElementById('new-paket-name');
+  const durEl = document.getElementById('new-paket-dur');
+  const name = nameEl.value.trim();
+  const dur = durEl.value.trim();
+  if(!name){ toast('Isi nama paket dulu!','error'); return; }
+  const list = getPaketList();
+  list.push({name, dur});
+  savePaketList(list);
+  nameEl.value = ''; durEl.value = '';
+  toast('Paket "'+name+'" ditambahkan!','success');
+  renderPaketList();
+}
+
+function refreshPaketDropdowns(){
+  const list = getPaketList();
+  ['f-pkg'].forEach(id => {
+    const el = document.getElementById(id);
+    if(!el) return;
+    const cur = el.value;
+    el.innerHTML = list.map(p=>`<option${paketLabel(p)===cur?' selected':''}>${paketLabel(p)}</option>`).join('');
+  });
+}
+
+
 document.getElementById('f-bdate').value=today();
 document.getElementById('slot-date').value=today();
+refreshSesiDropdowns();
+refreshPaketDropdowns();
 loadDashboard();
 setInterval(()=>{
   const active=document.querySelector('.page.active').id;
