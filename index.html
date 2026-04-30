@@ -312,33 +312,50 @@
     <!-- SCHEDULE -->
     <div class="page" id="page-schedule">
       <div class="page-title">Jadwal Slot</div>
-      <div class="page-sub">Pilih waktu seperti memilih kursi bioskop</div>
+      <div class="page-sub">Kelola jadwal per tanggal — setiap tanggal punya slot dan client yang berbeda</div>
       <div class="g2" style="align-items:start">
+
+        <!-- KIRI: Pilih tanggal + tambah slot -->
         <div>
           <div class="card gap">
-            <div class="form-row">
-              <div class="form-group"><label class="form-label">Pilih Tanggal</label><input type="date" id="slot-date" onchange="loadSlots()"></div>
-              <div class="form-group"><label class="form-label">Nama Client</label><input type="text" id="slot-client" placeholder="Untuk siapa?"></div>
+            <div class="form-group">
+              <label class="form-label">Pilih Tanggal</label>
+              <input type="date" id="slot-date" onchange="loadSlots()" style="font-size:14px">
             </div>
-            <div style="display:flex;gap:1rem;font-size:11px;color:var(--text3);margin-bottom:.75rem">
-              <span style="display:flex;align-items:center;gap:5px"><span style="width:10px;height:10px;background:var(--accent);border-radius:2px;display:inline-block"></span>Dipilih</span>
-              <span style="display:flex;align-items:center;gap:5px"><span style="width:10px;height:10px;background:rgba(57,224,155,.15);border:1px solid rgba(57,224,155,.3);border-radius:2px;display:inline-block"></span>Sudah Dipesan</span>
-              <span style="display:flex;align-items:center;gap:5px"><span style="width:10px;height:10px;background:rgba(240,90,90,.1);border-radius:2px;display:inline-block"></span>Terkunci</span>
+            <div id="slot-date-label" style="font-size:12px;color:var(--text3);margin-bottom:.75rem"></div>
+
+            <!-- Form tambah slot baru -->
+            <div style="background:var(--bg3);border:1px solid var(--border);border-radius:var(--r);padding:.875rem;margin-bottom:.875rem">
+              <div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:.6rem">+ Tambah Slot Baru</div>
+              <div class="form-row" style="margin-bottom:.5rem">
+                <div class="form-group" style="margin-bottom:0">
+                  <label class="form-label">Jam</label>
+                  <input type="time" id="slot-time-input" placeholder="09:00">
+                </div>
+                <div class="form-group" style="margin-bottom:0">
+                  <label class="form-label">Nama Client</label>
+                  <input type="text" id="slot-client" placeholder="Nama client...">
+                </div>
+              </div>
+              <div style="display:flex;justify-content:flex-end;gap:.5rem;margin-top:.5rem">
+                <button class="btn btn-sm btn-neon" onclick="confirmSlot()">Konfirmasi Slot</button>
+              </div>
             </div>
-            <label style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--text2);cursor:pointer;margin-bottom:.75rem">
-              <input type="checkbox" id="admin-mode" onchange="loadSlots()"> Mode Admin (bisa override slot)
-            </label>
-            <div id="slot-grid"><div class="loading"><div class="spinner"></div>Pilih tanggal</div></div>
-            <div id="slot-action" style="display:none;margin-top:.75rem;display:flex;justify-content:flex-end;gap:.5rem">
-              <button class="btn btn-sm" onclick="clearSlot()">Batal</button>
-              <button class="btn btn-sm btn-neon" onclick="confirmSlot()">Konfirmasi Slot</button>
-            </div>
+
+            <div id="slot-grid"><div class="empty">Pilih tanggal untuk melihat jadwal</div></div>
           </div>
         </div>
+
+        <!-- KANAN: Ringkasan slot terkonfirmasi -->
         <div class="card">
-          <div class="sec-head"><div class="sec-title">Slot Terkonfirmasi</div><button class="btn btn-sm" onclick="loadConfirmedSlots()">↺</button></div>
+          <div class="sec-head">
+            <div class="sec-title">📋 Slot Terkonfirmasi</div>
+            <button class="btn btn-sm" onclick="loadConfirmedSlots()">↺</button>
+          </div>
+          <div id="slot-date-label-right" style="font-size:11px;color:var(--text3);margin-bottom:.75rem">—</div>
           <div id="confirmed-list"><div class="empty">Pilih tanggal untuk melihat slot</div></div>
         </div>
+
       </div>
     </div>
 
@@ -491,7 +508,7 @@ function goPage(id,el){
   if(id==='dashboard')loadDashboard();
   if(id==='projects')loadProjects();
   if(id==='logs')loadLogs();
-  if(id==='schedule'){document.getElementById('slot-date').value=today();loadSlots();}
+  if(id==='schedule'){ const d=document.getElementById('slot-date').value; if(d) loadSlots(); }
   if(id==='settings'){renderSesiList();renderPaketList();renderStagesList();}
 }
 
@@ -731,91 +748,99 @@ async function deleteProject(id,name){
 }
 
 // ─── SCHEDULE ────────────────────────────────────────────────────────────────
-let selectedSlot=null;
-const HOURS=[8,9,10,11,12,13,14,15,16,17];
-const MINS=['00','15','30','45'];
+function fmtDateLabel(d){
+  if(!d) return '';
+  return new Date(d+'T00:00:00').toLocaleDateString('id-ID',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
+}
 
 async function loadSlots(){
-  const d=document.getElementById('slot-date').value;
-  if(!d){ document.getElementById('slot-grid').innerHTML='<div class="empty">Pilih tanggal terlebih dahulu</div>'; return; }
-  selectedSlot=null;
-  document.getElementById('slot-action').style.display='none';
+  const d = document.getElementById('slot-date').value;
+  const label = fmtDateLabel(d);
+  const lblEl = document.getElementById('slot-date-label');
+  const lblRight = document.getElementById('slot-date-label-right');
+  if(lblEl) lblEl.textContent = d ? label : '';
+  if(lblRight) lblRight.textContent = d ? label : '—';
+
+  if(!d){
+    document.getElementById('slot-grid').innerHTML='<div class="empty">Pilih tanggal untuk melihat jadwal</div>';
+    document.getElementById('confirmed-list').innerHTML='<div class="empty">Pilih tanggal untuk melihat slot</div>';
+    return;
+  }
   document.getElementById('slot-grid').innerHTML='<div class="loading"><div class="spinner"></div>Memuat slot...</div>';
   try{
-    const booked=await db('slots',{filter:`&slot_date=eq.${d}`,order:'slot_time.asc'});
-    const bookedMap={};
-    booked.forEach(s=>bookedMap[s.slot_time]=s.client_name||'Terkunci');
-    const admin=document.getElementById('admin-mode').checked;
-    let html='';
-    HOURS.forEach(h=>{
-      const hh=String(h).padStart(2,'0');
-      html+=`<div class="slot-hour"><div class="slot-hour-label">${hh}:00</div><div class="slot-row">`;
-      MINS.forEach(m=>{
-        const key=`${hh}:${m}`;
-        const isBooked=!!bookedMap[key];
-        let cls='slot';
-        if(isBooked&&!admin)cls+=' booked';
-        else if(isBooked&&admin)cls+=' taken admin-can';
-        html+=`<div class="${cls}" data-slot="${key}" onclick="selectSlot('${key}',${isBooked},${admin})" title="${isBooked?bookedMap[key]:''}">${key}<br><span style="font-size:9px;opacity:.6">${isBooked?'✓ '+bookedMap[key].slice(0,6):'Kosong'}</span></div>`;
+    const slots = await db('slots',{filter:`&slot_date=eq.${d}`,order:'slot_time.asc'});
+    if(!slots.length){
+      document.getElementById('slot-grid').innerHTML='<div class="empty" style="padding:1.5rem">Belum ada slot untuk tanggal ini.<br><span style="font-size:11px">Tambahkan slot baru di atas.</span></div>';
+    } else {
+      let html='<div style="display:flex;flex-direction:column;gap:6px">';
+      slots.forEach(s=>{
+        html+=`<div style="display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--bg3);border:1px solid var(--border);border-radius:var(--r)">
+          <span class="badge b-neon" style="font-size:12px;min-width:52px;justify-content:center">${s.slot_time}</span>
+          <span style="flex:1;font-size:13px;color:var(--text)">${s.client_name||'—'}</span>
+          <button class="btn btn-sm btn-danger" style="padding:3px 9px;font-size:11px" onclick="deleteSlot('${s.id}','${s.slot_time}','${(s.client_name||'').replace(/'/g,"\\'")}')">Hapus</button>
+        </div>`;
       });
-      html+='</div></div>';
-    });
-    document.getElementById('slot-grid').innerHTML=html;
+      html+='</div>';
+      document.getElementById('slot-grid').innerHTML=html;
+    }
     loadConfirmedSlots();
   }catch(e){ toast('Gagal memuat slot: '+e.message,'error'); }
 }
 
-function selectSlot(key,booked,admin){
-  if(booked&&!admin)return;
-  selectedSlot=selectedSlot===key?null:key;
-  document.querySelectorAll('.slot').forEach(s=>{
-    s.classList.toggle('selected',s.dataset.slot===selectedSlot);
-  });
-  document.getElementById('slot-action').style.display=selectedSlot?'flex':'none';
-}
-
-function clearSlot(){ selectedSlot=null; loadSlots(); }
-
 async function confirmSlot(){
-  if(!selectedSlot)return;
-  const d=document.getElementById('slot-date').value;
-  const client=document.getElementById('slot-client').value||'(Tanpa nama)';
+  const d = document.getElementById('slot-date').value;
+  const timeInput = document.getElementById('slot-time-input');
+  const clientInput = document.getElementById('slot-client');
+  const t = timeInput.value;
+  const client = clientInput.value.trim();
+  if(!d){ toast('Pilih tanggal dulu!','error'); return; }
+  if(!t){ toast('Isi jam slot dulu!','error'); return; }
+  if(!client){ toast('Isi nama client dulu!','error'); return; }
+  // Format time to HH:MM
+  const slotTime = t.length === 5 ? t : t.slice(0,5);
   try{
-    await dbPost('slots',{slot_date:d,slot_time:selectedSlot,client_name:client});
-    await addLog('Slot '+selectedSlot+' tgl '+d+' dikonfirmasi untuk '+client);
-    toast('Slot '+selectedSlot+' berhasil dikonfirmasi untuk '+client,'success');
-    selectedSlot=null; loadSlots();
+    await dbPost('slots',{slot_date:d, slot_time:slotTime, client_name:client});
+    await addLog('Slot '+slotTime+' tgl '+d+' dikonfirmasi untuk '+client);
+    toast('Slot '+slotTime+' → '+client+' berhasil ditambahkan!','success');
+    timeInput.value='';
+    clientInput.value='';
+    loadSlots();
   }catch(e){
     if(e.message.includes('duplicate')||e.message.includes('unique')){
-      toast('Slot ini sudah dipakai orang lain!','error');
+      toast('Slot jam '+slotTime+' di tanggal ini sudah ada!','error');
     } else { toast('Gagal konfirmasi: '+e.message,'error'); }
   }
 }
 
 async function loadConfirmedSlots(){
-  const d=document.getElementById('slot-date').value;
+  const d = document.getElementById('slot-date').value;
   if(!d){ document.getElementById('confirmed-list').innerHTML='<div class="empty">Pilih tanggal</div>'; return; }
   try{
-    const slots=await db('slots',{filter:`&slot_date=eq.${d}`,order:'slot_time.asc'});
-    if(!slots.length){ document.getElementById('confirmed-list').innerHTML='<div class="empty">Belum ada slot untuk tanggal ini</div>'; return; }
+    const slots = await db('slots',{filter:`&slot_date=eq.${d}`,order:'slot_time.asc'});
+    if(!slots.length){
+      document.getElementById('confirmed-list').innerHTML='<div class="empty">Belum ada slot untuk tanggal ini</div>';
+      return;
+    }
     let html='';
     slots.forEach(s=>{
-      html+=`<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border);font-size:12px">
-        <span class="badge b-neon">${s.slot_time}</span>
-        <span style="color:var(--text2)">${s.client_name||'—'}</span>
-        <button class="btn btn-sm btn-danger" style="padding:2px 8px;font-size:10px" onclick="deleteSlot('${s.id}','${s.slot_time}')">×</button>
+      html+=`<div style="display:flex;justify-content:space-between;align-items:center;padding:9px 0;border-bottom:1px solid var(--border)">
+        <span class="badge b-neon" style="font-size:11px">${s.slot_time}</span>
+        <span style="font-size:13px;color:var(--text);flex:1;margin:0 10px">${s.client_name||'—'}</span>
+        <button class="btn btn-sm btn-danger" style="padding:2px 8px;font-size:10px" onclick="deleteSlot('${s.id}','${s.slot_time}','${(s.client_name||'').replace(/'/g,"\\'")}')">×</button>
       </div>`;
     });
     document.getElementById('confirmed-list').innerHTML=html;
   }catch(e){}
 }
 
-async function deleteSlot(id,time){
-  try{
-    await dbDelete('slots','id=eq.'+id);
-    toast('Slot '+time+' dibatalkan','info');
-    loadSlots();
-  }catch(e){ toast('Gagal hapus slot','error'); }
+async function deleteSlot(id,time,clientName){
+  showModal('Hapus Slot','Hapus slot '+time+(clientName?' untuk '+clientName:'')+'?', async()=>{
+    try{
+      await dbDelete('slots','id=eq.'+id);
+      toast('Slot '+time+' dihapus','info');
+      loadSlots();
+    }catch(e){ toast('Gagal hapus slot','error'); }
+  });
 }
 
 // ─── LOGS ────────────────────────────────────────────────────────────────────
@@ -1112,7 +1137,6 @@ function refreshStagesDropdowns(){
 }
 
 document.getElementById('f-bdate').value=today();
-document.getElementById('slot-date').value=today();
 refreshSesiDropdowns();
 refreshPaketDropdowns();
 refreshStagesDropdowns();
