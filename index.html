@@ -288,17 +288,6 @@
           </div>
         </div>
         <div class="form-group"><label class="form-label">Link File Edit (Google Drive / Dropbox)</label><input type="url" id="f-link" placeholder="https://drive.google.com/..."></div>
-        <div class="form-group"><label class="form-label">Status Workflow Awal</label>
-          <select id="f-status">
-            <option value="0">Edit Preset</option>
-            <option value="1">Konfirmasi Pilih Foto</option>
-            <option value="2">File Siap Edit</option>
-            <option value="3">Proses Editing</option>
-            <option value="4">Proses Siap Cetak</option>
-            <option value="5">Pengiriman Cetak ke Client</option>
-            <option value="6">Done</option>
-          </select>
-        </div>
         <div class="form-group"><label class="form-label">Catatan</label><textarea id="f-notes" placeholder="Preferensi, request khusus..."></textarea></div>
         <div style="display:flex;gap:.5rem;justify-content:flex-end">
           <button class="btn btn-sm" onclick="clearForm()">Reset</button>
@@ -314,13 +303,6 @@
       <div style="display:flex;gap:.5rem;margin-bottom:1rem;align-items:center;flex-wrap:wrap">
         <select id="proj-filter" onchange="loadProjects()" style="width:auto;font-size:12px;padding:6px 10px">
           <option value="">Semua Status</option>
-          <option value="0">Edit Preset</option>
-          <option value="1">Konfirmasi Pilih Foto</option>
-          <option value="2">File Siap Edit</option>
-          <option value="3">Proses Editing</option>
-          <option value="4">Proses Siap Cetak</option>
-          <option value="5">Pengiriman Cetak</option>
-          <option value="6">Done</option>
         </select>
         <button class="btn btn-sm" onclick="loadProjects()">↺ Refresh</button>
       </div>
@@ -406,15 +388,14 @@
         </div>
 
       </div>
-    </div>
 
-      <!-- WORKFLOW STAGES - full width below -->
+      <!-- WORKFLOW STAGES - full width below g2 -->
       <div class="card" style="margin-top:1rem">
         <div class="sec-head">
           <div class="sec-title">🔄 Tahap Workflow</div>
           <span class="badge b-gold" id="stages-count">0 tahap</span>
         </div>
-        <div style="font-size:12px;color:var(--text3);margin-bottom:.875rem">Urutkan, edit, atau tambah tahap workflow. Tahap terakhir otomatis jadi status "Done".</div>
+        <div style="font-size:12px;color:var(--text3);margin-bottom:.875rem">Urutkan, edit, atau tambah tahap workflow. Tahap terakhir otomatis jadi status "Done". Booking baru selalu mulai dari tahap pertama.</div>
         <div id="stages-list" style="margin-bottom:1rem"></div>
         <div style="border-top:1px solid var(--border);padding-top:.875rem">
           <div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:.5rem">Tambah Tahap Baru</div>
@@ -519,13 +500,14 @@ function today(){ return new Date().toISOString().split('T')[0]; }
 function initials(n){ return n.trim().split(' ').slice(0,2).map(w=>w[0]).join('').toUpperCase(); }
 function fmtDate(d){ if(!d)return '—'; return new Date(d).toLocaleDateString('id-ID',{day:'2-digit',month:'short',year:'numeric'}); }
 function fmtDT(d){ if(!d)return '—'; return new Date(d).toLocaleString('id-ID',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'}); }
-function isDelay(p){ return p.status<6 && (Date.now()-new Date(p.last_updated))>3*86400000; }
+function isDelay(p){ return p.status<STAGES.length-1 && (Date.now()-new Date(p.last_updated))>3*86400000; }
 
 function stageBadge(s){
-  if(s===6) return '<span class="badge b-neon">Done</span>';
-  if(s>=4) return '<span class="badge b-gold">Siap Cetak</span>';
-  if(s>=2) return '<span class="badge b-purple">Editing</span>';
-  return '<span class="badge b-gray">'+STAGES[s]+'</span>';
+  const last = STAGES.length-1;
+  if(s>=last) return '<span class="badge b-neon">Done</span>';
+  if(s>=Math.floor(last*0.6)) return '<span class="badge b-gold">Siap Cetak</span>';
+  if(s>=Math.floor(last*0.3)) return '<span class="badge b-purple">Editing</span>';
+  return '<span class="badge b-gray">'+(STAGES[s]||'—')+'</span>';
 }
 
 // ─── DASHBOARD ───────────────────────────────────────────────────────────────
@@ -543,13 +525,13 @@ async function loadDashboard(){
     document.getElementById('m-editing').textContent=editing;
     document.getElementById('m-print').textContent=print;
     document.getElementById('m-delay').textContent=delay;
-    document.getElementById('nb-active').textContent=all.filter(p=>p.status<6).length;
+    document.getElementById('nb-active').textContent=all.filter(p=>p.status<STAGES.length-1).length;
 
-    const active=all.filter(p=>p.status<6);
+    const active=all.filter(p=>p.status<STAGES.length);
     let progHtml='';
     if(!active.length) progHtml='<div class="empty">Tidak ada project aktif</div>';
     active.forEach(p=>{
-      const pct=Math.round((p.status/6)*100);
+      const pct=Math.round((p.status/Math.max(STAGES.length-1,1))*100);
       progHtml+=`<div style="margin-bottom:14px">
         <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
           <div class="avatar avatar-sm">${initials(p.name)}</div>
@@ -594,7 +576,6 @@ function clearForm(){
   ['f-name','f-phone','f-bdate','f-sdate','f-link','f-notes'].forEach(id=>document.getElementById(id).value='');
   document.getElementById('f-type').selectedIndex=0;
   document.getElementById('f-pkg').selectedIndex=0;
-  document.getElementById('f-status').selectedIndex=0;
 }
 
 async function submitBooking(){
@@ -609,7 +590,7 @@ async function submitBooking(){
       shoot_date:document.getElementById('f-sdate').value||null,
       session_type:document.getElementById('f-type').value,
       package:document.getElementById('f-pkg').value,
-      status:parseInt(document.getElementById('f-status').value),
+      status: 0,
       file_link:document.getElementById('f-link').value,
       notes:document.getElementById('f-notes').value,
       last_updated:new Date().toISOString()
@@ -634,7 +615,7 @@ async function loadProjects(){
     if(!all.length){ document.getElementById('proj-list').innerHTML='<div class="empty">Tidak ada project ditemukan.</div>'; return; }
     let html='';
     all.forEach(p=>{
-      const pct=Math.round((p.status/6)*100);
+      const pct=Math.round((p.status/Math.max(STAGES.length-1,1))*100);
       const delayed=isDelay(p);
       const pills=STAGES.map((s,i)=>`<span class="stage-pill ${i<p.status?'done':i===p.status?'current':''}">${s.split(' ')[0]}</span>`).join('');
       html+=`<div class="proj-card ${delayed?'delay':''}">
@@ -659,7 +640,7 @@ async function loadProjects(){
           ${p.file_link?`<a href="${p.file_link}" target="_blank" class="btn btn-sm">Buka File Edit ↗</a>`:''}
           <div style="margin-left:auto;display:flex;gap:6px">
             <button class="btn btn-sm" onclick="toggleEditPanel('${p.id}')" style="color:var(--accent2);border-color:rgba(124,106,247,.3)">✎ Edit Info</button>
-            ${p.status<6?`<button class="btn btn-sm btn-neon" onclick="nextStage('${p.id}',${p.status})">Lanjutkan →</button>`:''}
+            ${p.status<STAGES.length-1?`<button class="btn btn-sm btn-neon" onclick="nextStage('${p.id}',${p.status})">Lanjutkan →</button>`:''}
             <button class="btn btn-sm btn-danger" onclick="deleteProject('${p.id}','${p.name}')">Hapus</button>
           </div>
         </div>
@@ -699,7 +680,7 @@ async function loadProjects(){
       </div>`;
     });
     document.getElementById('proj-list').innerHTML=html;
-    document.getElementById('nb-active').textContent=all.filter(p=>p.status<6).length;
+    document.getElementById('nb-active').textContent=all.filter(p=>p.status<STAGES.length-1).length;
   }catch(e){ document.getElementById('proj-list').innerHTML='<div class="empty">Gagal memuat data.</div>'; toast(e.message,'error'); }
 }
 
@@ -734,7 +715,7 @@ async function saveEditPanel(id){
 }
 
 async function nextStage(id,cur){
-  if(cur>=6)return;
+  if(cur>=STAGES.length-1)return;
   await updateStatus(id,cur+1);
 }
 
@@ -1121,12 +1102,6 @@ function addStage(){
 }
 
 function refreshStagesDropdowns(){
-  // Status Workflow Awal dropdown (booking form)
-  const fStatus = document.getElementById('f-status');
-  if(fStatus){
-    const cur = fStatus.value;
-    fStatus.innerHTML = STAGES.map((s,i)=>`<option value="${i}"${String(i)===cur?' selected':''}>${s}</option>`).join('');
-  }
   // Filter dropdown in projects page
   const projFilter = document.getElementById('proj-filter');
   if(projFilter){
