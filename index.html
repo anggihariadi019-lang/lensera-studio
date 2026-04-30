@@ -408,6 +408,29 @@
       </div>
     </div>
 
+      <!-- WORKFLOW STAGES - full width below -->
+      <div class="card" style="margin-top:1rem">
+        <div class="sec-head">
+          <div class="sec-title">🔄 Tahap Workflow</div>
+          <span class="badge b-gold" id="stages-count">0 tahap</span>
+        </div>
+        <div style="font-size:12px;color:var(--text3);margin-bottom:.875rem">Urutkan, edit, atau tambah tahap workflow. Tahap terakhir otomatis jadi status "Done".</div>
+        <div id="stages-list" style="margin-bottom:1rem"></div>
+        <div style="border-top:1px solid var(--border);padding-top:.875rem">
+          <div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:.5rem">Tambah Tahap Baru</div>
+          <div style="display:flex;gap:.5rem">
+            <input type="text" id="new-stage-name" placeholder="Contoh: Review Client, Revisi, Cetak Ulang..." style="flex:1">
+            <select id="new-stage-pos" style="width:130px;font-size:12px">
+              <option value="end">Di Akhir</option>
+              <option value="start">Di Awal</option>
+            </select>
+            <button class="btn btn-sm btn-primary" onclick="addStage()">+ Tambah</button>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- end page-settings -->
+
     <!-- LOGS -->
     <div class="page" id="page-logs">
       <div class="page-title">Activity Log</div>
@@ -425,7 +448,10 @@
 // ─── CONFIG ─────────────────────────────────────────────────────────────────
 const SB_URL = 'https://wlfvrlnuvyplfdlyxqif.supabase.co';
 const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndsZnZybG51dnlwbGZkbHl4cWlmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc1NzY1NTEsImV4cCI6MjA5MzE1MjU1MX0.NkzVd8JJIEUVzLmBN_9rKWld49480K4e4NkLdfVQ134';
-const STAGES = ['Edit Preset','Konfirmasi Pilih Foto','File Siap Edit','Proses Editing','Proses Siap Cetak','Pengiriman Cetak ke Client','Done'];
+const DEFAULT_STAGES = ['Edit Preset','Konfirmasi Pilih Foto','File Siap Edit','Proses Editing','Proses Siap Cetak','Pengiriman Cetak ke Client','Done'];
+function getStages(){ try{ return JSON.parse(localStorage.getItem('lensera_stages')||'null')||DEFAULT_STAGES.slice(); }catch(e){ return DEFAULT_STAGES.slice(); } }
+function saveStages(list){ localStorage.setItem('lensera_stages',JSON.stringify(list)); }
+let STAGES = getStages();
 
 // ─── SUPABASE HELPER ─────────────────────────────────────────────────────────
 const H = {'Content-Type':'application/json','apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY};
@@ -485,7 +511,7 @@ function goPage(id,el){
   if(id==='projects')loadProjects();
   if(id==='logs')loadLogs();
   if(id==='schedule'){document.getElementById('slot-date').value=today();loadSlots();}
-  if(id==='settings'){renderSesiList();renderPaketList();}
+  if(id==='settings'){renderSesiList();renderPaketList();renderStagesList();}
 }
 
 // ─── UTILS ───────────────────────────────────────────────────────────────────
@@ -504,6 +530,7 @@ function stageBadge(s){
 
 // ─── DASHBOARD ───────────────────────────────────────────────────────────────
 async function loadDashboard(){
+  STAGES = getStages();
   setSyncStatus(true);
   try{
     const all = await db('bookings');
@@ -598,6 +625,7 @@ async function submitBooking(){
 
 // ─── PROJECTS ────────────────────────────────────────────────────────────────
 async function loadProjects(){
+  STAGES = getStages();
   const fv=document.getElementById('proj-filter').value;
   const filter=fv!==''?`&status=eq.${fv}`:'';
   document.getElementById('proj-list').innerHTML='<div class="loading"><div class="spinner"></div>Memuat...</div>';
@@ -1004,10 +1032,115 @@ function refreshPaketDropdowns(){
 }
 
 
+// ─── SETTINGS: WORKFLOW STAGES ───────────────────────────────────────────────
+function renderStagesList(){
+  STAGES = getStages();
+  document.getElementById('stages-count').textContent = STAGES.length + ' tahap';
+  let html = '';
+  STAGES.forEach((s, i) => {
+    const isFirst = i === 0;
+    const isLast = i === STAGES.length - 1;
+    html += `<div style="display:flex;align-items:center;gap:.5rem;padding:8px 0;border-bottom:1px solid var(--border)">
+      <div style="display:flex;flex-direction:column;gap:2px;margin-right:2px">
+        <button class="btn btn-sm" style="padding:1px 6px;font-size:10px;opacity:${isFirst?'0.2':'1'}" ${isFirst?'disabled':''} onclick="moveStage(${i},-1)" title="Naik">▲</button>
+        <button class="btn btn-sm" style="padding:1px 6px;font-size:10px;opacity:${isLast?'0.2':'1'}" ${isLast?'disabled':''} onclick="moveStage(${i},1)" title="Turun">▼</button>
+      </div>
+      <span style="font-size:11px;color:var(--text3);min-width:18px;text-align:center;font-weight:600">${i+1}</span>
+      <div id="stage-view-${i}" style="flex:1;display:flex;align-items:center;gap:6px">
+        <span style="font-size:13px;color:var(--text)">${s}</span>
+        ${isLast ? '<span class="badge b-neon" style="font-size:10px">Done</span>' : ''}
+      </div>
+      <div id="stage-edit-${i}" style="flex:1;display:none">
+        <input type="text" id="stage-input-${i}" value="${s}" style="font-size:12px;padding:5px 8px">
+      </div>
+      <button class="btn btn-sm" style="color:var(--accent2);border-color:rgba(124,106,247,.3);padding:3px 8px;font-size:11px" onclick="toggleStageEdit(${i})">✎</button>
+      <button class="btn btn-sm btn-primary" id="stage-save-btn-${i}" style="display:none;padding:3px 10px;font-size:11px" onclick="saveStageEdit(${i})">Simpan</button>
+      <button class="btn btn-sm btn-danger" style="padding:3px 8px;font-size:11px" ${STAGES.length<=2?'disabled title="Minimal 2 tahap"':''} onclick="deleteStage(${i})">×</button>
+    </div>`;
+  });
+  document.getElementById('stages-list').innerHTML = html;
+  refreshStagesDropdowns();
+}
+
+function toggleStageEdit(i){
+  const view = document.getElementById('stage-view-'+i);
+  const edit = document.getElementById('stage-edit-'+i);
+  const saveBtn = document.getElementById('stage-save-btn-'+i);
+  const isEditing = edit.style.display !== 'none';
+  view.style.display = isEditing ? 'flex' : 'none';
+  edit.style.display = isEditing ? 'none' : 'block';
+  saveBtn.style.display = isEditing ? 'none' : 'inline-flex';
+}
+
+function saveStageEdit(i){
+  const list = getStages();
+  const val = document.getElementById('stage-input-'+i).value.trim();
+  if(!val){ toast('Nama tahap tidak boleh kosong!','error'); return; }
+  list[i] = val;
+  saveStages(list);
+  STAGES = list;
+  toast('Tahap workflow diperbarui!','success');
+  renderStagesList();
+}
+
+function deleteStage(i){
+  const list = getStages();
+  if(list.length <= 2){ toast('Minimal harus ada 2 tahap workflow!','error'); return; }
+  showModal('Hapus Tahap', 'Hapus tahap "'+list[i]+'"? Project yang sudah di tahap ini tidak terpengaruh.', ()=>{
+    list.splice(i,1);
+    saveStages(list);
+    STAGES = list;
+    toast('Tahap dihapus','info');
+    renderStagesList();
+  });
+}
+
+function moveStage(i, dir){
+  const list = getStages();
+  const j = i + dir;
+  if(j < 0 || j >= list.length) return;
+  [list[i], list[j]] = [list[j], list[i]];
+  saveStages(list);
+  STAGES = list;
+  renderStagesList();
+}
+
+function addStage(){
+  const nameEl = document.getElementById('new-stage-name');
+  const pos = document.getElementById('new-stage-pos').value;
+  const val = nameEl.value.trim();
+  if(!val){ toast('Isi nama tahap dulu!','error'); return; }
+  const list = getStages();
+  if(pos === 'start') list.unshift(val);
+  else list.push(val);
+  saveStages(list);
+  STAGES = list;
+  nameEl.value = '';
+  toast('Tahap "'+val+'" ditambahkan!','success');
+  renderStagesList();
+}
+
+function refreshStagesDropdowns(){
+  // Status Workflow Awal dropdown (booking form)
+  const fStatus = document.getElementById('f-status');
+  if(fStatus){
+    const cur = fStatus.value;
+    fStatus.innerHTML = STAGES.map((s,i)=>`<option value="${i}"${String(i)===cur?' selected':''}>${s}</option>`).join('');
+  }
+  // Filter dropdown in projects page
+  const projFilter = document.getElementById('proj-filter');
+  if(projFilter){
+    const cur = projFilter.value;
+    projFilter.innerHTML = '<option value="">Semua Status</option>' +
+      STAGES.map((s,i)=>`<option value="${i}"${String(i)===cur?' selected':''}>${s}</option>`).join('');
+  }
+}
+
 document.getElementById('f-bdate').value=today();
 document.getElementById('slot-date').value=today();
 refreshSesiDropdowns();
 refreshPaketDropdowns();
+refreshStagesDropdowns();
 loadDashboard();
 setInterval(()=>{
   const active=document.querySelector('.page.active').id;
