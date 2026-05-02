@@ -8,40 +8,24 @@
 <style>
   *{box-sizing:border-box;margin:0;padding:0}
   :root{
-    --bg:#0a0a0f;
-    --bg2:#111118;
-    --bg3:#18181f;
-    --card:#1c1c25;
-    --card2:#22222e;
-    --border:#2a2a38;
-    --border2:#353548;
-    --accent:#7c6af7;
-    --accent2:#9d8fff;
-    --neon:#39e09b;
-    --neon2:#25c47e;
-    --gold:#f5c842;
-    --danger:#f05a5a;
-    --warn:#f0a14a;
-    --text:#eeeef5;
-    --text2:#9898b0;
-    --text3:#5e5e78;
-    --font-head:'Syne',sans-serif;
-    --font-body:'DM Sans',sans-serif;
+    --bg:#0a0a0f;--bg2:#111118;--bg3:#18181f;--card:#1c1c25;--card2:#22222e;
+    --border:#2a2a38;--border2:#353548;
+    --accent:#7c6af7;--accent2:#9d8fff;
+    --neon:#39e09b;--neon2:#25c47e;
+    --gold:#f5c842;--danger:#f05a5a;--warn:#f0a14a;
+    --text:#eeeef5;--text2:#9898b0;--text3:#5e5e78;
+    --font-head:'Syne',sans-serif;--font-body:'DM Sans',sans-serif;
     --r:10px;--r2:16px;--r3:24px
   }
   html,body{min-height:100vh;background:var(--bg);color:var(--text);font-family:var(--font-body);font-size:14px;line-height:1.6}
-
-  /* SCROLLBAR */
   ::-webkit-scrollbar{width:4px;height:4px}
   ::-webkit-scrollbar-track{background:var(--bg)}
   ::-webkit-scrollbar-thumb{background:var(--border2);border-radius:4px}
 
-  /* LAYOUT */
   .layout{display:flex;min-height:100vh}
   .sidebar{width:220px;flex-shrink:0;background:var(--bg2);border-right:1px solid var(--border);display:flex;flex-direction:column;position:fixed;top:0;left:0;height:100vh;z-index:100}
   .main{margin-left:220px;flex:1;padding:2rem;min-height:100vh}
 
-  /* SIDEBAR */
   .logo{padding:1.5rem 1.25rem;border-bottom:1px solid var(--border)}
   .logo-mark{font-family:var(--font-head);font-size:18px;font-weight:700;color:var(--text);letter-spacing:-0.5px}
   .logo-mark span{color:var(--accent2)}
@@ -58,40 +42,32 @@
   .sync-dot.syncing{background:var(--warn);animation:pulse 1s infinite}
   @keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
 
-  /* PAGES */
   .page{display:none}.page.active{display:block}
   .page-title{font-family:var(--font-head);font-size:22px;font-weight:700;color:var(--text);margin-bottom:.25rem}
   .page-sub{font-size:13px;color:var(--text3);margin-bottom:1.75rem}
 
-  /* CARDS */
   .card{background:var(--card);border:1px solid var(--border);border-radius:var(--r2);padding:1.25rem}
   .card2{background:var(--card2);border:1px solid var(--border);border-radius:var(--r);padding:1rem}
 
-  /* GRID */
   .g2{display:grid;grid-template-columns:1fr 1fr;gap:1rem}
   .g3{display:grid;grid-template-columns:repeat(3,1fr);gap:1rem}
   .g4{display:grid;grid-template-columns:repeat(4,1fr);gap:.75rem}
   .gap{margin-bottom:1rem}
 
-  /* METRIC */
   .metric{background:var(--card);border:1px solid var(--border);border-radius:var(--r2);padding:1.25rem}
   .metric-num{font-family:var(--font-head);font-size:32px;font-weight:700;line-height:1}
   .metric-label{font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;margin-top:.5rem}
   .metric-sub{font-size:12px;color:var(--text2);margin-top:.25rem}
-  .c-purple{color:var(--accent2)}
-  .c-neon{color:var(--neon)}
-  .c-gold{color:var(--gold)}
-  .c-danger{color:var(--danger)}
+  .c-purple{color:var(--accent2)}.c-neon{color:var(--neon)}.c-gold{color:var(--gold)}.c-danger{color:var(--danger)}
 
-  /* BADGES */
   .badge{display:inline-flex;align-items:center;gap:4px;padding:2px 9px;border-radius:20px;font-size:11px;font-weight:500}
   .b-purple{background:rgba(124,106,247,.15);color:var(--accent2);border:1px solid rgba(124,106,247,.25)}
   .b-neon{background:rgba(57,224,155,.12);color:var(--neon);border:1px solid rgba(57,224,155,.2)}
   .b-gold{background:rgba(245,200,66,.12);color:var(--gold);border:1px solid rgba(245,200,66,.2)}
   .b-danger{background:rgba(240,90,90,.12);color:var(--danger);border:1px solid rgba(240,90,90,.2)}
   .b-gray{background:rgba(152,152,176,.1);color:var(--text2);border:1px solid var(--border)}
+  .b-warn{background:rgba(240,161,74,.12);color:var(--warn);border:1px solid rgba(240,161,74,.2)}
 
-  /* FORM */
   .form-group{margin-bottom:.875rem}
   .form-label{display:block;font-size:12px;color:var(--text3);letter-spacing:.5px;text-transform:uppercase;margin-bottom:.4rem}
   input,select,textarea{width:100%;background:var(--bg3);border:1px solid var(--border);border-radius:var(--r);color:var(--text);font-family:var(--font-body);font-size:13px;padding:9px 12px;outline:none;transition:border .2s}
@@ -100,7 +76,6 @@
   textarea{resize:vertical;min-height:72px}
   .form-row{display:grid;grid-template-columns:1fr 1fr;gap:.875rem}
 
-  /* BUTTONS */
   .btn{display:inline-flex;align-items:center;gap:6px;padding:9px 18px;border-radius:var(--r);border:1px solid var(--border2);background:transparent;color:var(--text2);font-family:var(--font-body);font-size:13px;cursor:pointer;transition:all .2s;font-weight:500}
   .btn:hover{background:var(--card2);color:var(--text);border-color:var(--border2)}
   .btn-primary{background:var(--accent);color:#fff;border-color:var(--accent)}
@@ -110,22 +85,20 @@
   .btn-sm{padding:5px 12px;font-size:12px}
   .btn-danger{background:rgba(240,90,90,.12);color:var(--danger);border-color:rgba(240,90,90,.25)}
   .btn-danger:hover{background:rgba(240,90,90,.22)}
+  .btn-gold{background:rgba(245,200,66,.12);color:var(--gold);border-color:rgba(245,200,66,.25)}
+  .btn-gold:hover{background:rgba(245,200,66,.22)}
 
-  /* PROGRESS */
   .prog-track{height:4px;background:var(--border);border-radius:4px;overflow:hidden}
   .prog-fill{height:100%;background:linear-gradient(90deg,var(--accent),var(--neon));border-radius:4px;transition:width .5s}
 
-  /* STAGES */
   .stage-pills{display:flex;gap:4px;flex-wrap:wrap;margin:8px 0}
   .stage-pill{font-size:10px;padding:2px 7px;border-radius:20px;border:1px solid var(--border);color:var(--text3)}
   .stage-pill.done{background:rgba(124,106,247,.12);color:var(--accent2);border-color:rgba(124,106,247,.25)}
   .stage-pill.current{background:rgba(57,224,155,.12);color:var(--neon);border-color:rgba(57,224,155,.3)}
 
-  /* AVATAR */
   .avatar{width:38px;height:38px;border-radius:50%;background:linear-gradient(135deg,var(--accent),var(--neon));display:flex;align-items:center;justify-content:center;font-family:var(--font-head);font-size:13px;font-weight:700;color:#fff;flex-shrink:0}
   .avatar-sm{width:28px;height:28px;font-size:10px}
 
-  /* PROJECT CARD */
   .proj-card{background:var(--card);border:1px solid var(--border);border-radius:var(--r2);padding:1.25rem;margin-bottom:.75rem;transition:border .2s}
   .proj-card:hover{border-color:var(--border2)}
   .proj-card.delay{border-left:3px solid var(--danger)}
@@ -135,50 +108,33 @@
   .proj-meta{font-size:12px;color:var(--text3);margin-top:2px}
   .proj-actions{display:flex;gap:6px;align-items:center;margin-top:.875rem;flex-wrap:wrap}
 
-  /* SLOT GRID */
-  .slot-hour{margin-bottom:1rem}
-  .slot-hour-label{font-size:11px;color:var(--text3);letter-spacing:1px;margin-bottom:5px;text-transform:uppercase}
-  .slot-row{display:flex;gap:5px;flex-wrap:wrap}
-  .slot{padding:5px 8px;border-radius:6px;border:1px solid var(--border);color:var(--text3);font-size:11px;cursor:pointer;transition:all .2s;font-family:var(--font-body);min-width:60px;text-align:center}
-  .slot:hover:not(.taken):not(.booked){background:rgba(124,106,247,.12);border-color:var(--accent);color:var(--accent2)}
-  .slot.selected{background:var(--accent);color:#fff;border-color:var(--accent);font-weight:500}
-  .slot.taken{background:rgba(240,90,90,.08);color:rgba(240,90,90,.5);border-color:rgba(240,90,90,.15);cursor:not-allowed;text-decoration:line-through}
-  .slot.booked{background:rgba(57,224,155,.08);color:rgba(57,224,155,.5);border-color:rgba(57,224,155,.15);cursor:not-allowed}
-  .slot.admin-can{cursor:pointer!important;opacity:1!important}
-
-  /* LOG */
   .log-row{display:flex;gap:10px;padding:9px 0;border-bottom:1px solid var(--border);font-size:12px}
   .log-row:last-child{border:none}
   .log-time{color:var(--text3);white-space:nowrap;min-width:125px}
   .log-msg{color:var(--text2)}
 
-  /* NOTIF */
   .notif-item{display:flex;gap:8px;padding:9px 0;border-bottom:1px solid var(--border);align-items:flex-start}
   .notif-item:last-child{border:none}
   .notif-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0;margin-top:4px}
 
-  /* DIVIDER */
   .divider{height:1px;background:var(--border);margin:1rem 0}
 
-  /* TOAST */
   #toast{position:fixed;bottom:1.5rem;right:1.5rem;z-index:9999;display:flex;flex-direction:column;gap:.5rem}
   .toast-item{background:var(--card2);border:1px solid var(--border2);border-radius:var(--r);padding:.75rem 1rem;font-size:13px;color:var(--text);min-width:220px;animation:toastin .3s ease;display:flex;align-items:center;gap:8px}
   @keyframes toastin{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
   .toast-success{border-left:3px solid var(--neon)}
   .toast-error{border-left:3px solid var(--danger)}
   .toast-info{border-left:3px solid var(--accent)}
+  .toast-warn{border-left:3px solid var(--warn)}
 
-  /* LOADING */
   .loading{display:flex;align-items:center;justify-content:center;padding:3rem;color:var(--text3);gap:8px;font-size:13px}
   .spinner{width:16px;height:16px;border:2px solid var(--border2);border-top-color:var(--accent);border-radius:50%;animation:spin .6s linear infinite}
   @keyframes spin{to{transform:rotate(360deg)}}
   .empty{text-align:center;padding:3rem;color:var(--text3);font-size:13px}
 
-  /* SECTION HEAD */
   .sec-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem}
   .sec-title{font-family:var(--font-head);font-size:15px;font-weight:600;color:var(--text)}
 
-  /* CONFIRM MODAL */
   #modal-bg{display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:200;align-items:center;justify-content:center}
   #modal-bg.show{display:flex}
   .modal{background:var(--card);border:1px solid var(--border2);border-radius:var(--r2);padding:1.75rem;width:460px;max-width:94vw}
@@ -186,7 +142,6 @@
   .modal-body{font-size:13px;color:var(--text2);margin-bottom:1.5rem}
   .modal-actions{display:flex;gap:.5rem;justify-content:flex-end}
 
-  /* DEADLINE UI */
   .deadline-card{background:rgba(240,90,90,.07);border:1px solid rgba(240,90,90,.25);border-radius:var(--r2);padding:1.25rem;margin-top:1rem}
   .deadline-card-title{font-family:var(--font-head);font-size:15px;font-weight:600;color:var(--danger);display:flex;align-items:center;gap:8px;margin-bottom:.875rem}
   .deadline-item{display:flex;align-items:center;gap:10px;padding:9px 12px;background:rgba(240,90,90,.06);border:1px solid rgba(240,90,90,.18);border-radius:var(--r);margin-bottom:6px}
@@ -195,7 +150,12 @@
   .deadline-name{flex:1;font-size:13px;font-weight:500;color:var(--text)}
   .deadline-info{font-size:11px;color:var(--text3)}
 
-  /* MOBILE */
+  /* Jadwal: booking dari DB */
+  .sched-booking-item{display:flex;align-items:center;gap:10px;padding:8px 12px;background:rgba(57,224,155,.06);border:1px solid rgba(57,224,155,.18);border-radius:var(--r);margin-bottom:5px}
+  .sched-manual-item{display:flex;align-items:center;gap:10px;padding:8px 12px;background:var(--bg3);border:1px solid var(--border);border-radius:var(--r);margin-bottom:5px}
+  .sched-time{font-family:var(--font-head);font-weight:600;font-size:12px;min-width:50px;color:var(--neon)}
+  .sched-time.manual{color:var(--accent2)}
+
   @media(max-width:768px){
     .sidebar{width:100%;height:auto;position:relative;flex-direction:row;flex-wrap:wrap;padding:.5rem}
     .nav{display:flex;padding:0;flex-wrap:wrap}
@@ -259,11 +219,18 @@
         <div class="metric"><div class="metric-num c-gold" id="m-print">—</div><div class="metric-label">Siap Cetak</div></div>
         <div class="metric"><div class="metric-num c-danger" id="m-delay">—</div><div class="metric-label">Overdue</div></div>
       </div>
-      <!-- DEADLINE REMINDER -->
       <div class="deadline-card" id="deadline-section" style="display:none;margin-bottom:1rem">
-        <div class="deadline-card-title">⚠ Deadline Terlampaui <span class="badge b-danger" id="deadline-count" style="font-size:11px">0</span></div>
+        <div class="deadline-card-title">⚠ Deadline Terlampaui <span class="badge b-danger" id="deadline-count">0</span></div>
         <div style="font-size:11px;color:var(--danger);opacity:.75;margin-bottom:.75rem">Project berikut sudah melewati batas 2 hari dari tanggal photoshoot dan belum selesai.</div>
         <div id="deadline-list"></div>
+      </div>
+      <!-- Jadwal Hari Ini di Dashboard -->
+      <div class="card gap" id="dash-today-sched" style="margin-bottom:1rem">
+        <div class="sec-head" style="margin-bottom:.75rem">
+          <div class="sec-title">📅 Jadwal Hari Ini</div>
+          <button class="btn btn-sm" onclick="loadDashTodaySchedule()">↺</button>
+        </div>
+        <div id="dash-today-sched-list"><div class="loading"><div class="spinner"></div>Memuat...</div></div>
       </div>
       <div class="g2">
         <div class="card">
@@ -288,21 +255,14 @@
         </div>
         <div class="form-row">
           <div class="form-group"><label class="form-label">Tanggal Booking *</label><input type="date" id="f-bdate"></div>
-          <div class="form-group"><label class="form-label">Tanggal Shoot</label><input type="date" id="f-sdate"></div>
+          <div class="form-group"><label class="form-label">Tanggal Shoot</label><input type="date" id="f-sdate" onchange="checkShootDateConflict('f-sdate')"></div>
         </div>
         <div class="form-row">
-          <div class="form-group"><label class="form-label">Tipe Sesi</label>
-            <select id="f-type">
-              <option>Prewedding</option><option>Portrait</option><option>Produk</option>
-              <option>Event</option><option>Family</option><option>Maternity</option><option>Lainnya</option>
-            </select>
-          </div>
-          <div class="form-group"><label class="form-label">Paket</label>
-            <select id="f-pkg">
-              <option>Silver – 2 Jam</option><option>Gold – 4 Jam</option><option>Platinum – Full Day</option>
-            </select>
-          </div>
+          <div class="form-group"><label class="form-label">Jam Shoot</label><input type="time" id="f-stime" placeholder="09:00"></div>
+          <div class="form-group"><label class="form-label">Tipe Sesi</label><select id="f-type"></select></div>
         </div>
+        <div class="form-group"><label class="form-label">Paket</label><select id="f-pkg"></select></div>
+        <div id="f-conflict-warn" style="display:none;background:rgba(240,161,74,.08);border:1px solid rgba(240,161,74,.25);border-radius:var(--r);padding:.65rem .875rem;margin-bottom:.875rem;font-size:12px;color:var(--warn)"></div>
         <div class="form-group"><label class="form-label">Catatan</label><textarea id="f-notes" placeholder="Preferensi, request khusus..."></textarea></div>
         <div style="display:flex;gap:.5rem;justify-content:flex-end">
           <button class="btn btn-sm" onclick="clearForm()">Reset</button>
@@ -316,8 +276,6 @@
       <div class="page-title">Import dari WhatsApp</div>
       <div class="page-sub">Paste teks chat WA dari admin — sistem otomatis baca dan isi form booking</div>
       <div style="max-width:720px">
-
-        <!-- STEP 1: PASTE -->
         <div class="card gap" id="iwa-step1">
           <div class="sec-head" style="margin-bottom:.75rem">
             <div class="sec-title">📋 Step 1 — Paste Teks WA</div>
@@ -333,6 +291,7 @@ Nama : Meryl
 No. WA : 081540812889
 Paket Foto : Paket A
 Tanggal Foto : 20 mei 2026
+Jam Foto : 09:00
 Jenis acara : Wisuda
 Lokasi acara : Kampus UI
 Nama Instagram: meryll.a_
@@ -344,57 +303,32 @@ Jumlah DP/LUNAS : dp 100.000"></textarea>
           </div>
         </div>
 
-        <!-- STEP 2: PREVIEW + EDIT -->
         <div class="card" id="iwa-step2" style="display:none">
           <div class="sec-head" style="margin-bottom:1rem">
             <div class="sec-title">✏️ Step 2 — Cek & Edit Hasil Parse</div>
             <span class="badge b-neon" id="iwa-parse-status">Berhasil dibaca</span>
           </div>
-
           <div class="form-row">
-            <div class="form-group">
-              <label class="form-label">Nama Client *</label>
-              <input type="text" id="iwa-name" placeholder="Nama client">
-            </div>
-            <div class="form-group">
-              <label class="form-label">No. WhatsApp</label>
-              <input type="text" id="iwa-phone" placeholder="08xx-xxxx-xxxx">
-            </div>
+            <div class="form-group"><label class="form-label">Nama Client *</label><input type="text" id="iwa-name" placeholder="Nama client"></div>
+            <div class="form-group"><label class="form-label">No. WhatsApp</label><input type="text" id="iwa-phone" placeholder="08xx-xxxx-xxxx"></div>
           </div>
           <div class="form-row">
-            <div class="form-group">
-              <label class="form-label">Tanggal Booking</label>
-              <input type="date" id="iwa-bdate">
-            </div>
-            <div class="form-group">
-              <label class="form-label">Tanggal Foto</label>
-              <input type="date" id="iwa-sdate">
-            </div>
+            <div class="form-group"><label class="form-label">Tanggal Booking</label><input type="date" id="iwa-bdate"></div>
+            <div class="form-group"><label class="form-label">Tanggal Foto</label><input type="date" id="iwa-sdate" onchange="checkShootDateConflict('iwa-sdate')"></div>
           </div>
           <div class="form-row">
-            <div class="form-group">
-              <label class="form-label">Jenis Acara / Tipe Sesi</label>
-              <select id="iwa-type"></select>
-            </div>
-            <div class="form-group">
-              <label class="form-label">Paket</label>
-              <select id="iwa-pkg"></select>
-            </div>
+            <div class="form-group"><label class="form-label">Jam Foto</label><input type="time" id="iwa-stime"></div>
+            <div class="form-group"><label class="form-label">Jenis Acara / Tipe Sesi</label><select id="iwa-type"></select></div>
           </div>
-          <div class="form-group">
-            <label class="form-label">Catatan (Lokasi, Instagram, DP, dll)</label>
-            <textarea id="iwa-notes" rows="3"></textarea>
-          </div>
-
-          <!-- Field yang tidak bisa di-parse ditandai merah -->
+          <div class="form-group"><label class="form-label">Paket</label><select id="iwa-pkg"></select></div>
+          <div id="iwa-conflict-warn" style="display:none;background:rgba(240,161,74,.08);border:1px solid rgba(240,161,74,.25);border-radius:var(--r);padding:.65rem .875rem;margin-bottom:.875rem;font-size:12px;color:var(--warn)"></div>
+          <div class="form-group"><label class="form-label">Catatan (Lokasi, Instagram, DP, dll)</label><textarea id="iwa-notes" rows="3"></textarea></div>
           <div id="iwa-warnings" style="display:none;background:rgba(240,90,90,.07);border:1px solid rgba(240,90,90,.2);border-radius:var(--r);padding:.75rem;margin-bottom:.875rem;font-size:12px;color:var(--danger)"></div>
-
           <div style="display:flex;gap:.5rem;justify-content:flex-end;flex-wrap:wrap">
             <button class="btn btn-sm" onclick="document.getElementById('iwa-step2').style.display='none';document.getElementById('iwa-step1').style.display='block'">← Kembali</button>
             <button class="btn btn-sm btn-primary" onclick="submitImportWa()" id="iwa-btn-submit">💾 Simpan Booking</button>
           </div>
         </div>
-
       </div>
     </div>
 
@@ -406,6 +340,7 @@ Jumlah DP/LUNAS : dp 100.000"></textarea>
         <select id="proj-filter" onchange="loadProjects()" style="width:auto;font-size:12px;padding:6px 10px">
           <option value="">Semua Status</option>
         </select>
+        <input type="text" id="proj-search" placeholder="Cari nama client..." style="width:200px;font-size:12px;padding:6px 10px" oninput="loadProjects()">
         <button class="btn btn-sm" onclick="loadProjects()">↺ Refresh</button>
       </div>
       <div id="proj-list"><div class="loading"><div class="spinner"></div>Memuat project...</div></div>
@@ -413,11 +348,9 @@ Jumlah DP/LUNAS : dp 100.000"></textarea>
 
     <!-- SCHEDULE -->
     <div class="page" id="page-schedule">
-      <div class="page-title">Jadwal Slot</div>
-      <div class="page-sub">Kelola jadwal per tanggal — setiap tanggal punya slot dan client yang berbeda</div>
+      <div class="page-title">Jadwal Shoot</div>
+      <div class="page-sub">Kelola jadwal per tanggal — terintegrasi dengan data booking & slot manual</div>
       <div class="g2" style="align-items:start">
-
-        <!-- KIRI: Pilih tanggal + tambah slot -->
         <div>
           <div class="card gap">
             <div class="form-group">
@@ -426,9 +359,9 @@ Jumlah DP/LUNAS : dp 100.000"></textarea>
             </div>
             <div id="slot-date-label" style="font-size:12px;color:var(--text3);margin-bottom:.75rem"></div>
 
-            <!-- Form tambah slot baru -->
+            <!-- Tambah slot manual -->
             <div style="background:var(--bg3);border:1px solid var(--border);border-radius:var(--r);padding:.875rem;margin-bottom:.875rem">
-              <div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:.6rem">+ Tambah Slot Baru</div>
+              <div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:.6rem">+ Tambah Slot Manual</div>
               <div class="form-row" style="margin-bottom:.5rem">
                 <div class="form-group" style="margin-bottom:0">
                   <label class="form-label">Jam</label>
@@ -448,26 +381,26 @@ Jumlah DP/LUNAS : dp 100.000"></textarea>
           </div>
         </div>
 
-        <!-- KANAN: Ringkasan slot terkonfirmasi -->
         <div class="card">
           <div class="sec-head">
-            <div class="sec-title">📋 Slot Terkonfirmasi</div>
+            <div class="sec-title">📋 Jadwal Lengkap</div>
             <button class="btn btn-sm" onclick="loadConfirmedSlots()">↺</button>
           </div>
           <div id="slot-date-label-right" style="font-size:11px;color:var(--text3);margin-bottom:.75rem">—</div>
-          <div id="confirmed-list"><div class="empty">Pilih tanggal untuk melihat slot</div></div>
+          <div style="display:flex;gap:8px;margin-bottom:.75rem;font-size:11px;color:var(--text3)">
+            <span style="display:flex;align-items:center;gap:4px"><span style="width:8px;height:8px;border-radius:50%;background:var(--neon);display:inline-block"></span>Dari Booking</span>
+            <span style="display:flex;align-items:center;gap:4px"><span style="width:8px;height:8px;border-radius:50%;background:var(--accent2);display:inline-block"></span>Slot Manual</span>
+          </div>
+          <div id="confirmed-list"><div class="empty">Pilih tanggal untuk melihat jadwal</div></div>
         </div>
-
       </div>
     </div>
 
     <!-- SETTINGS -->
     <div class="page" id="page-settings">
       <div class="page-title">Pengaturan</div>
-      <div class="page-sub">Kelola tipe sesi dan paket sesuai kebutuhan studio</div>
+      <div class="page-sub">Kelola tipe sesi, paket, dan tahap workflow</div>
       <div class="g2" style="align-items:start">
-
-        <!-- TIPE SESI -->
         <div class="card">
           <div class="sec-head">
             <div class="sec-title">🎭 Tipe Sesi</div>
@@ -482,8 +415,6 @@ Jumlah DP/LUNAS : dp 100.000"></textarea>
             </div>
           </div>
         </div>
-
-        <!-- PAKET -->
         <div class="card">
           <div class="sec-head">
             <div class="sec-title">📦 Paket</div>
@@ -493,22 +424,14 @@ Jumlah DP/LUNAS : dp 100.000"></textarea>
           <div style="border-top:1px solid var(--border);padding-top:.875rem">
             <div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:.5rem">Tambah Paket Baru</div>
             <div style="display:grid;grid-template-columns:1fr auto auto;gap:.5rem;align-items:end">
-              <div>
-                <div style="font-size:11px;color:var(--text3);margin-bottom:4px">Nama Paket</div>
-                <input type="text" id="new-paket-name" placeholder="Contoh: Diamond">
-              </div>
-              <div>
-                <div style="font-size:11px;color:var(--text3);margin-bottom:4px">Durasi</div>
-                <input type="text" id="new-paket-dur" placeholder="3 Jam" style="width:90px">
-              </div>
+              <div><div style="font-size:11px;color:var(--text3);margin-bottom:4px">Nama Paket</div><input type="text" id="new-paket-name" placeholder="Contoh: Diamond"></div>
+              <div><div style="font-size:11px;color:var(--text3);margin-bottom:4px">Durasi</div><input type="text" id="new-paket-dur" placeholder="3 Jam" style="width:90px"></div>
               <button class="btn btn-sm btn-primary" onclick="addPaket()" style="white-space:nowrap">+ Tambah</button>
             </div>
           </div>
         </div>
-
       </div>
 
-      <!-- WORKFLOW STAGES - full width below g2 -->
       <div class="card" style="margin-top:1rem">
         <div class="sec-head">
           <div class="sec-title">🔄 Tahap Workflow</div>
@@ -520,16 +443,12 @@ Jumlah DP/LUNAS : dp 100.000"></textarea>
           <div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:.5rem">Tambah Tahap Baru</div>
           <div style="display:flex;gap:.5rem">
             <input type="text" id="new-stage-name" placeholder="Contoh: Review Client, Revisi, Cetak Ulang..." style="flex:1">
-            <select id="new-stage-pos" style="width:130px;font-size:12px">
-              <option value="end">Di Akhir</option>
-              <option value="start">Di Awal</option>
-            </select>
+            <select id="new-stage-pos" style="width:130px;font-size:12px"><option value="end">Di Akhir</option><option value="start">Di Awal</option></select>
             <button class="btn btn-sm btn-primary" onclick="addStage()">+ Tambah</button>
           </div>
         </div>
       </div>
-
-    </div><!-- end page-settings -->
+    </div>
 
     <!-- LOGS -->
     <div class="page" id="page-logs">
@@ -545,10 +464,11 @@ Jumlah DP/LUNAS : dp 100.000"></textarea>
 </div>
 
 <script>
-// ─── CONFIG ─────────────────────────────────────────────────────────────────
+// ─── CONFIG ──────────────────────────────────────────────────────────────────
 const SB_URL = 'https://wlfvrlnuvyplfdlyxqif.supabase.co';
 const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndsZnZybG51dnlwbGZkbHl4cWlmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc1NzY1NTEsImV4cCI6MjA5MzE1MjU1MX0.NkzVd8JJIEUVzLmBN_9rKWld49480K4e4NkLdfVQ134';
 const DEFAULT_STAGES = ['Edit Preset','Konfirmasi Pilih Foto','File Siap Edit','Proses Editing','Proses Siap Cetak','Pengiriman Cetak ke Client','Done'];
+
 function getStages(){ try{ return JSON.parse(localStorage.getItem('lensera_stages')||'null')||DEFAULT_STAGES.slice(); }catch(e){ return DEFAULT_STAGES.slice(); } }
 function saveStages(list){ localStorage.setItem('lensera_stages',JSON.stringify(list)); }
 let STAGES = getStages();
@@ -557,7 +477,7 @@ let STAGES = getStages();
 const H = {'Content-Type':'application/json','apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY};
 
 async function db(table, opts={}){
-  const {method='GET',filter='',body,select='*',order='created_at.desc',limit=200} = opts;
+  const {method='GET',filter='',body,select='*',order='created_at.desc',limit=300} = opts;
   let url = `${SB_URL}/rest/v1/${table}?select=${select}&order=${order}&limit=${limit}${filter}`;
   const res = await fetch(url, {
     method, headers:{...H, ...(method==='POST'?{'Prefer':'return=representation'}:{})},
@@ -585,7 +505,7 @@ async function addLog(msg){
 function toast(msg,type='info'){
   const el=document.createElement('div');
   el.className=`toast-item toast-${type}`;
-  el.innerHTML=`<span>${type==='success'?'✓':type==='error'?'✕':'●'}</span>${msg}`;
+  el.innerHTML=`<span>${type==='success'?'✓':type==='error'?'✕':type==='warn'?'⚠':'●'}</span>${msg}`;
   document.getElementById('toast').appendChild(el);
   setTimeout(()=>el.remove(),3500);
 }
@@ -602,25 +522,37 @@ function showModal(title,body,cb){
 function closeModal(){ document.getElementById('modal-bg').classList.remove('show'); }
 
 // ─── NAV ─────────────────────────────────────────────────────────────────────
-function goPage(id,el){
+function goPage(id, el){
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
   document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
   document.getElementById('page-'+id).classList.add('active');
-  if(el)el.classList.add('active');
-  if(id==='dashboard')loadDashboard();
-  if(id==='projects')loadProjects();
-  if(id==='logs')loadLogs();
-  if(id==='schedule'){ const d=document.getElementById('slot-date').value; if(d) loadSlots(); }
-  if(id==='settings'){renderSesiList();renderPaketList();renderStagesList();}
-  if(id==='importwa'){initImportWaDropdowns();}
+  if(el) el.classList.add('active');
+  if(id==='dashboard') loadDashboard();
+  if(id==='projects') loadProjects();
+  if(id==='logs') loadLogs();
+  if(id==='schedule'){
+    const d = document.getElementById('slot-date').value;
+    if(!d){ document.getElementById('slot-date').value = today(); }
+    loadSlots();
+  }
+  if(id==='settings'){ renderSesiList(); renderPaketList(); renderStagesList(); }
+  if(id==='importwa'){ initImportWaDropdowns(); }
 }
 
 // ─── UTILS ───────────────────────────────────────────────────────────────────
 function today(){ return new Date().toISOString().split('T')[0]; }
 function initials(n){ return n.trim().split(' ').slice(0,2).map(w=>w[0]).join('').toUpperCase(); }
-function fmtDate(d){ if(!d)return '—'; return new Date(d).toLocaleDateString('id-ID',{day:'2-digit',month:'short',year:'numeric'}); }
+function fmtDate(d){ if(!d)return '—'; return new Date(d+'T00:00:00').toLocaleDateString('id-ID',{day:'2-digit',month:'short',year:'numeric'}); }
 function fmtDT(d){ if(!d)return '—'; return new Date(d).toLocaleString('id-ID',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'}); }
-function isDelay(p){ return p.status<STAGES.length-1 && (Date.now()-new Date(p.last_updated))>3*86400000; }
+function fmtDateLabel(d){ if(!d)return ''; return new Date(d+'T00:00:00').toLocaleDateString('id-ID',{weekday:'long',day:'numeric',month:'long',year:'numeric'}); }
+
+// Delay = belum done AND lebih dari 2 hari dari shoot_date
+function isDelay(p){
+  if(p.status >= STAGES.length-1) return false;
+  if(!p.shoot_date) return false;
+  const diffDays = (Date.now() - new Date(p.shoot_date+'T00:00:00').getTime()) / 86400000;
+  return diffDays > 2;
+}
 
 function stageBadge(s){
   const last = STAGES.length-1;
@@ -628,6 +560,25 @@ function stageBadge(s){
   if(s>=Math.floor(last*0.6)) return '<span class="badge b-gold">Siap Cetak</span>';
   if(s>=Math.floor(last*0.3)) return '<span class="badge b-purple">Editing</span>';
   return '<span class="badge b-gray">'+(STAGES[s]||'—')+'</span>';
+}
+
+// ─── CONFLICT CHECKER ────────────────────────────────────────────────────────
+// Cek apakah tanggal+jam sudah ada di booking lain
+async function checkShootDateConflict(fieldId){
+  const dateEl = document.getElementById(fieldId);
+  const warnId = fieldId.startsWith('iwa') ? 'iwa-conflict-warn' : 'f-conflict-warn';
+  const warnEl = document.getElementById(warnId);
+  const d = dateEl.value;
+  if(!d){ warnEl.style.display='none'; return; }
+  try{
+    const existing = await db('bookings',{filter:`&shoot_date=eq.${d}`,select:'name,shoot_time,status'});
+    const active = existing.filter(p=>p.status < STAGES.length-1);
+    if(active.length){
+      const names = active.map(p=>p.name+(p.shoot_time?' ('+p.shoot_time+')':'')).join(', ');
+      warnEl.style.display='block';
+      warnEl.innerHTML=`⚠ Tanggal ini sudah ada booking: <strong style="color:var(--warn)">${names}</strong>. Pastikan jadwal tidak bertabrakan.`;
+    } else { warnEl.style.display='none'; }
+  }catch(e){ warnEl.style.display='none'; }
 }
 
 // ─── DASHBOARD ───────────────────────────────────────────────────────────────
@@ -638,28 +589,25 @@ async function loadDashboard(){
     const all = await db('bookings');
     const t = today();
     const todayB = all.filter(p=>p.book_date===t).length;
-    const editing = all.filter(p=>p.status===3||p.status===2).length;
-    const print = all.filter(p=>p.status===4||p.status===5).length;
+    const editingIdx = Math.floor((STAGES.length-1)*0.3);
+    const printIdx = Math.floor((STAGES.length-1)*0.6);
+    const editing = all.filter(p=>p.status>=editingIdx && p.status<printIdx).length;
+    const print = all.filter(p=>p.status>=printIdx && p.status<STAGES.length-1).length;
     const delay = all.filter(isDelay).length;
+
     document.getElementById('m-today').textContent=todayB;
     document.getElementById('m-editing').textContent=editing;
     document.getElementById('m-print').textContent=print;
     document.getElementById('m-delay').textContent=delay;
     document.getElementById('nb-active').textContent=all.filter(p=>p.status<STAGES.length-1).length;
 
-    const active=all.filter(p=>p.status<STAGES.length);
-    
-    // ── DEADLINE CHECK: lebih dari 2 hari dari shoot_date & belum done
+    // Deadline check: lebih dari 2 hari dari shoot_date & belum done
     const now = Date.now();
     const deadlineItems = all.filter(p=>{
-      if(p.status >= STAGES.length-1) return false; // already done
+      if(p.status >= STAGES.length-1) return false;
       if(!p.shoot_date) return false;
-      const shootTs = new Date(p.shoot_date).getTime();
-      const diffDays = (now - shootTs) / 86400000;
-      return diffDays > 2;
-    }).sort((a,b)=>{
-      return new Date(a.shoot_date).getTime() - new Date(b.shoot_date).getTime();
-    });
+      return (now - new Date(p.shoot_date+'T00:00:00').getTime()) / 86400000 > 2;
+    }).sort((a,b)=>new Date(a.shoot_date).getTime()-new Date(b.shoot_date).getTime());
 
     const deadlineSec = document.getElementById('deadline-section');
     const deadlineList = document.getElementById('deadline-list');
@@ -667,34 +615,36 @@ async function loadDashboard(){
     if(deadlineItems.length){
       deadlineSec.style.display='block';
       deadlineCount.textContent = deadlineItems.length;
-      let dlHtml='';
-      deadlineItems.forEach(p=>{
-        const shootTs = new Date(p.shoot_date).getTime();
-        const diffDays = Math.floor((now - shootTs)/86400000);
-        dlHtml+=`<div class="deadline-item">
-          <span class="deadline-days">+${diffDays} hari</span>
+      deadlineList.innerHTML = deadlineItems.map(p=>{
+        const diffDays = Math.floor((now - new Date(p.shoot_date+'T00:00:00').getTime())/86400000);
+        return `<div class="deadline-item">
+          <span class="deadline-days">+${diffDays}h</span>
           <div style="flex:1">
             <div class="deadline-name">${p.name}</div>
-            <div class="deadline-info">Shoot: ${fmtDate(p.shoot_date)} · Tahap: ${STAGES[p.status]||'—'} · ${p.session_type||''}</div>
+            <div class="deadline-info">Shoot: ${fmtDate(p.shoot_date)}${p.shoot_time?' · '+p.shoot_time:''} · Tahap: ${STAGES[p.status]||'—'} · ${p.session_type||''}</div>
           </div>
           ${p.file_link?`<a href="${p.file_link}" target="_blank" class="btn btn-sm btn-danger" style="font-size:11px;padding:4px 10px">File Edit ↗</a>`:''}
         </div>`;
-      });
-      deadlineList.innerHTML=dlHtml;
+      }).join('');
     } else {
       deadlineSec.style.display='none';
       deadlineList.innerHTML='';
     }
 
-    let progHtml='';
-    if(!active.length) progHtml='<div class="empty">Tidak ada project aktif</div>';
+    await loadDashTodaySchedule();
+
+    // Progress
+    const active = all.filter(p=>p.status<STAGES.length);
+    let progHtml = !active.length ? '<div class="empty">Tidak ada project aktif</div>' : '';
     active.forEach(p=>{
       const pct=Math.round((p.status/Math.max(STAGES.length-1,1))*100);
       progHtml+=`<div style="margin-bottom:14px">
         <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
           <div class="avatar avatar-sm">${initials(p.name)}</div>
-          <div style="flex:1"><div style="font-size:13px;font-weight:500">${p.name}</div>
-          <div style="font-size:11px;color:var(--text3)">${STAGES[p.status]}</div></div>
+          <div style="flex:1">
+            <div style="font-size:13px;font-weight:500">${p.name}</div>
+            <div style="font-size:11px;color:var(--text3)">${STAGES[p.status]||'—'}</div>
+          </div>
           <div style="font-size:12px;color:var(--text3)">${pct}%</div>
           ${isDelay(p)?'<span class="badge b-danger" style="font-size:10px">Delay</span>':''}
         </div>
@@ -703,23 +653,61 @@ async function loadDashboard(){
     });
     document.getElementById('dash-progress').innerHTML=progHtml;
 
+    // Notifikasi
     const notifs=[];
     all.forEach(p=>{
-      if(p.status===3) notifs.push({c:'#7c6af7',msg:p.name+' — masuk tahap Proses Editing'});
-      if(p.status===4) notifs.push({c:var_gold,msg:p.name+' — Siap Cetak!'});
-      if(isDelay(p)) notifs.push({c:'#f05a5a',msg:p.name+' — Tidak ada update lebih dari 3 hari'});
+      const editStage = STAGES[Math.floor((STAGES.length-1)*0.3)];
+      const printStage = STAGES[Math.floor((STAGES.length-1)*0.6)];
+      if(STAGES[p.status]===editStage) notifs.push({c:var_accent,'msg':p.name+' — masuk '+editStage});
+      if(STAGES[p.status]===printStage) notifs.push({c:var_gold,'msg':p.name+' — '+printStage+'!'});
+      if(isDelay(p)) notifs.push({c:var_danger,'msg':p.name+' — Belum ada update lebih dari 2 hari sejak shoot'});
     });
     document.getElementById('notif-count').textContent=notifs.length;
-    let nHtml='';
-    if(!notifs.length) nHtml='<div class="empty">Tidak ada notifikasi</div>';
-    notifs.forEach(n=>{
-      nHtml+=`<div class="notif-item"><span class="notif-dot" style="background:${n.c}"></span><span style="font-size:12px;color:var(--text2)">${n.msg}</span></div>`;
-    });
-    document.getElementById('dash-notif').innerHTML=nHtml;
+    document.getElementById('dash-notif').innerHTML = !notifs.length
+      ? '<div class="empty">Tidak ada notifikasi</div>'
+      : notifs.map(n=>`<div class="notif-item"><span class="notif-dot" style="background:${n.c}"></span><span style="font-size:12px;color:var(--text2)">${n.msg}</span></div>`).join('');
+
     setSyncStatus(false);
   }catch(e){ toast('Gagal memuat dashboard: '+e.message,'error'); setSyncStatus(false); }
 }
+
 const var_gold='#f5c842';
+const var_danger='#f05a5a';
+const var_accent='#9d8fff';
+
+// ─── JADWAL HARI INI DI DASHBOARD ────────────────────────────────────────────
+async function loadDashTodaySchedule(){
+  const t = today();
+  const listEl = document.getElementById('dash-today-sched-list');
+  try{
+    // Ambil dari bookings (shoot_date = hari ini) + slots manual
+    const [bookings, slots] = await Promise.all([
+      db('bookings',{filter:`&shoot_date=eq.${t}`,order:'shoot_time.asc'}),
+      db('slots',{filter:`&slot_date=eq.${t}`,order:'slot_time.asc'})
+    ]);
+
+    const items = [];
+    bookings.forEach(b=>{ items.push({time:b.shoot_time||'--:--',name:b.name,type:'booking',info:b.session_type||'',pkg:b.package||'',status:b.status}); });
+    slots.forEach(s=>{ items.push({time:s.slot_time||'--:--',name:s.client_name,type:'slot',info:'Slot Manual',pkg:''}); });
+    items.sort((a,b)=>a.time.localeCompare(b.time));
+
+    if(!items.length){
+      listEl.innerHTML='<div class="empty" style="padding:1.5rem">Tidak ada jadwal shoot hari ini.</div>';
+      return;
+    }
+    listEl.innerHTML=items.map(item=>`
+      <div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border)">
+        <span style="font-family:var(--font-head);font-size:13px;font-weight:600;min-width:50px;color:${item.type==='booking'?'var(--neon)':'var(--accent2)'}">${item.time}</span>
+        <div style="flex:1">
+          <div style="font-size:13px;font-weight:500;color:var(--text)">${item.name}</div>
+          <div style="font-size:11px;color:var(--text3)">${item.info}${item.pkg?' · '+item.pkg:''}</div>
+        </div>
+        ${item.type==='booking'?`<span class="badge b-neon" style="font-size:10px">${STAGES[item.status]||'—'}</span>`:'<span class="badge b-purple" style="font-size:10px">Manual</span>'}
+      </div>`).join('');
+  }catch(e){
+    listEl.innerHTML='<div class="empty">Gagal memuat jadwal</div>';
+  }
+}
 
 // ─── SYNC STATUS ─────────────────────────────────────────────────────────────
 function setSyncStatus(loading){
@@ -731,9 +719,11 @@ function setSyncStatus(loading){
 
 // ─── BOOKING ─────────────────────────────────────────────────────────────────
 function clearForm(){
-  ['f-name','f-phone','f-bdate','f-sdate','f-notes'].forEach(id=>document.getElementById(id).value='');
+  ['f-name','f-phone','f-bdate','f-sdate','f-stime','f-notes'].forEach(id=>{ const el=document.getElementById(id); if(el) el.value=''; });
   document.getElementById('f-type').selectedIndex=0;
   document.getElementById('f-pkg').selectedIndex=0;
+  document.getElementById('f-bdate').value=today();
+  const w=document.getElementById('f-conflict-warn'); if(w) w.style.display='none';
 }
 
 async function submitBooking(){
@@ -742,21 +732,34 @@ async function submitBooking(){
   const btn=document.getElementById('btn-submit');
   btn.textContent='Menyimpan...'; btn.disabled=true;
   try{
+    const sdate = document.getElementById('f-sdate').value||null;
+    const stime = document.getElementById('f-stime').value||null;
     const data={
-      name, phone:document.getElementById('f-phone').value,
+      name,
+      phone:document.getElementById('f-phone').value,
       book_date:document.getElementById('f-bdate').value||today(),
-      shoot_date:document.getElementById('f-sdate').value||null,
+      shoot_date:sdate,
+      shoot_time:stime,
       session_type:document.getElementById('f-type').value,
       package:document.getElementById('f-pkg').value,
-      status: 0,
+      status:0,
       notes:document.getElementById('f-notes').value,
       last_updated:new Date().toISOString()
     };
     await dbPost('bookings',data);
-    await addLog('Booking baru: '+name+' ('+data.session_type+')');
+    await addLog('Booking baru: '+name+' ('+data.session_type+')'+(sdate?' · Shoot: '+fmtDate(sdate)+(stime?' '+stime:''):''));
     toast('Booking '+name+' berhasil disimpan!','success');
+    // Jika ada shoot_date & shoot_time, auto-konfirmasi slot
+    if(sdate && stime){
+      try{
+        await dbPost('slots',{slot_date:sdate,slot_time:stime,client_name:name});
+        toast('Slot jadwal '+stime+' tgl '+fmtDate(sdate)+' otomatis ditambahkan','info');
+      }catch(slotErr){
+        // slot mungkin sudah ada (duplicate), bukan error fatal
+      }
+    }
     clearForm();
-    goPage('projects',document.querySelectorAll('.nav-item')[2]);
+    goPage('projects',document.querySelectorAll('.nav-item')[3]);
   }catch(e){ toast('Gagal menyimpan: '+e.message,'error'); }
   btn.textContent='Simpan Booking'; btn.disabled=false;
 }
@@ -765,10 +768,12 @@ async function submitBooking(){
 async function loadProjects(){
   STAGES = getStages();
   const fv=document.getElementById('proj-filter').value;
+  const search=(document.getElementById('proj-search')||{value:''}).value.trim().toLowerCase();
   const filter=fv!==''?`&status=eq.${fv}`:'';
   document.getElementById('proj-list').innerHTML='<div class="loading"><div class="spinner"></div>Memuat...</div>';
   try{
-    const all=await db('bookings',{filter,order:'created_at.desc'});
+    let all=await db('bookings',{filter,order:'created_at.desc'});
+    if(search) all=all.filter(p=>p.name.toLowerCase().includes(search));
     if(!all.length){ document.getElementById('proj-list').innerHTML='<div class="empty">Tidak ada project ditemukan.</div>'; return; }
     let html='';
     all.forEach(p=>{
@@ -780,7 +785,7 @@ async function loadProjects(){
           <div class="avatar">${initials(p.name)}</div>
           <div class="proj-info">
             <div class="proj-name">${p.name}</div>
-            <div class="proj-meta">${p.session_type||''} · ${p.package||''} · Shoot: ${fmtDate(p.shoot_date)}</div>
+            <div class="proj-meta">${p.session_type||''} · ${p.package||''} · Shoot: ${fmtDate(p.shoot_date)}${p.shoot_time?' '+p.shoot_time:''}</div>
           </div>
           <div style="text-align:right;display:flex;flex-direction:column;gap:4px;align-items:flex-end">
             ${stageBadge(p.status)}
@@ -794,12 +799,13 @@ async function loadProjects(){
           <select onchange="updateStatus('${p.id}',this.value)" style="width:auto;font-size:12px;padding:5px 8px">
             ${STAGES.map((s,i)=>`<option value="${i}"${i===p.status?' selected':''}>${s}</option>`).join('')}
           </select>
-          ${p.file_link_preset?`<a href="${p.file_link_preset}" target="_blank" class="btn btn-sm" style="color:var(--gold);border-color:rgba(245,200,66,.3)">📁 File Preset ↗</a>`:''}
-          ${p.file_link?`<a href="${p.file_link}" target="_blank" class="btn btn-sm">✏ File Edit ↗</a>`:''}
+          ${p.file_link_preset?`<a href="${p.file_link_preset}" target="_blank" class="btn btn-sm btn-gold" style="font-size:11px">📁 Preset ↗</a>`:''}
+          ${p.file_link?`<a href="${p.file_link}" target="_blank" class="btn btn-sm" style="font-size:11px">✏ Edit ↗</a>`:''}
           ${p.file_numbers?`<span class="badge b-purple" title="No. File Dipilih" style="font-size:11px;cursor:default">🔢 ${p.file_numbers}</span>`:''}
           <div style="margin-left:auto;display:flex;gap:6px">
-            <button class="btn btn-sm" onclick="toggleEditPanel('${p.id}')" style="color:var(--accent2);border-color:rgba(124,106,247,.3)">✎ Edit Info</button>
-            ${p.status<STAGES.length-1?`<button class="btn btn-sm btn-neon" onclick="nextStage('${p.id}',${p.status})">Lanjutkan →</button>`:''}
+            ${p.shoot_date?`<button class="btn btn-sm" onclick="jumpToSchedule('${p.shoot_date}')" style="color:var(--neon);border-color:rgba(57,224,155,.3);font-size:11px">📅 Jadwal</button>`:''}
+            <button class="btn btn-sm" onclick="toggleEditPanel('${p.id}')" style="color:var(--accent2);border-color:rgba(124,106,247,.3)">✎ Edit</button>
+            ${p.status<STAGES.length-1?`<button class="btn btn-sm btn-neon" onclick="nextStage('${p.id}',${p.status})">Lanjut →</button>`:''}
             <button class="btn btn-sm btn-danger" onclick="deleteProject('${p.id}','${p.name}')">Hapus</button>
           </div>
         </div>
@@ -823,6 +829,10 @@ async function loadProjects(){
               <input type="date" id="ep-sdate-${p.id}" value="${p.shoot_date||''}" style="font-size:12px;padding:6px 10px">
             </div>
             <div>
+              <div style="font-size:11px;color:var(--text3);margin-bottom:4px;text-transform:uppercase;letter-spacing:.5px">Jam Shoot</div>
+              <input type="time" id="ep-stime-${p.id}" value="${p.shoot_time||''}" style="font-size:12px;padding:6px 10px">
+            </div>
+            <div>
               <div style="font-size:11px;color:var(--text3);margin-bottom:4px;text-transform:uppercase;letter-spacing:.5px">Link File Preset</div>
               <input type="url" id="ep-link-preset-${p.id}" value="${p.file_link_preset||''}" placeholder="https://drive.google.com/..." style="font-size:12px;padding:6px 10px">
             </div>
@@ -831,8 +841,8 @@ async function loadProjects(){
               <input type="url" id="ep-link-${p.id}" value="${p.file_link||''}" placeholder="https://drive.google.com/..." style="font-size:12px;padding:6px 10px">
             </div>
             <div style="grid-column:1/-1">
-              <div style="font-size:11px;color:var(--text3);margin-bottom:4px;text-transform:uppercase;letter-spacing:.5px">Nomor Pilihan File yang Diedit</div>
-              <input type="text" id="ep-filenums-${p.id}" value="${p.file_numbers||''}" placeholder="Contoh: 1, 5, 12, 23, 40 ..." style="font-size:12px;padding:6px 10px">
+              <div style="font-size:11px;color:var(--text3);margin-bottom:4px;text-transform:uppercase;letter-spacing:.5px">Nomor File Diedit</div>
+              <input type="text" id="ep-filenums-${p.id}" value="${p.file_numbers||''}" placeholder="Contoh: 1, 5, 12, 23, 40" style="font-size:12px;padding:6px 10px">
             </div>
           </div>
           <div style="margin-bottom:.75rem">
@@ -851,12 +861,18 @@ async function loadProjects(){
   }catch(e){ document.getElementById('proj-list').innerHTML='<div class="empty">Gagal memuat data.</div>'; toast(e.message,'error'); }
 }
 
+// Jump ke jadwal dengan tanggal tertentu
+function jumpToSchedule(date){
+  document.getElementById('slot-date').value = date;
+  goPage('schedule', document.querySelectorAll('.nav-item')[4]);
+}
+
 async function updateStatus(id,val){
   const s=parseInt(val);
   try{
     await dbPatch('bookings','id=eq.'+id,{status:s,last_updated:new Date().toISOString()});
-    await addLog('Status diperbarui ke "'+STAGES[s]+'" — ID '+id.slice(0,8));
-    toast('Status diperbarui: '+STAGES[s],'success');
+    await addLog('Status → "'+STAGES[s]+'" — ID '+id.slice(0,8));
+    toast('Status: '+STAGES[s],'success');
     loadProjects(); loadDashboard();
   }catch(e){ toast('Gagal update: '+e.message,'error'); }
 }
@@ -871,13 +887,20 @@ async function saveEditPanel(id){
   const session_type=document.getElementById('ep-type-'+id).value;
   const pkg=document.getElementById('ep-pkg-'+id).value;
   const shoot_date=document.getElementById('ep-sdate-'+id).value||null;
+  const shoot_time=document.getElementById('ep-stime-'+id).value||null;
   const file_link_preset=document.getElementById('ep-link-preset-'+id).value;
   const file_link=document.getElementById('ep-link-'+id).value;
   const file_numbers=document.getElementById('ep-filenums-'+id).value;
   const notes=document.getElementById('ep-notes-'+id).value;
   try{
-    await dbPatch('bookings','id=eq.'+id,{session_type,package:pkg,shoot_date,file_link_preset,file_link,file_numbers,notes,last_updated:new Date().toISOString()});
-    await addLog('Info diperbarui: tipe sesi → '+session_type+', paket → '+pkg+' (ID '+id.slice(0,8)+')');
+    await dbPatch('bookings','id=eq.'+id,{session_type,package:pkg,shoot_date,shoot_time,file_link_preset,file_link,file_numbers,notes,last_updated:new Date().toISOString()});
+    await addLog('Info diperbarui: '+session_type+' · '+pkg+(shoot_date?' · Shoot: '+fmtDate(shoot_date)+(shoot_time?' '+shoot_time:''):'')+' (ID '+id.slice(0,8)+')');
+    // Sync slot otomatis jika ada shoot_date & shoot_time
+    if(shoot_date && shoot_time){
+      try{
+        await dbPost('slots',{slot_date:shoot_date,slot_time:shoot_time,client_name:''});
+      }catch(e){}
+    }
     toast('Perubahan berhasil disimpan!','success');
     loadProjects();
   }catch(e){ toast('Gagal menyimpan: '+e.message,'error'); }
@@ -900,11 +923,6 @@ async function deleteProject(id,name){
 }
 
 // ─── SCHEDULE ────────────────────────────────────────────────────────────────
-function fmtDateLabel(d){
-  if(!d) return '';
-  return new Date(d+'T00:00:00').toLocaleDateString('id-ID',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
-}
-
 async function loadSlots(){
   const d = document.getElementById('slot-date').value;
   const label = fmtDateLabel(d);
@@ -915,25 +933,52 @@ async function loadSlots(){
 
   if(!d){
     document.getElementById('slot-grid').innerHTML='<div class="empty">Pilih tanggal untuk melihat jadwal</div>';
-    document.getElementById('confirmed-list').innerHTML='<div class="empty">Pilih tanggal untuk melihat slot</div>';
+    document.getElementById('confirmed-list').innerHTML='<div class="empty">Pilih tanggal untuk melihat jadwal</div>';
     return;
   }
   document.getElementById('slot-grid').innerHTML='<div class="loading"><div class="spinner"></div>Memuat slot...</div>';
   try{
-    const slots = await db('slots',{filter:`&slot_date=eq.${d}`,order:'slot_time.asc'});
-    if(!slots.length){
-      document.getElementById('slot-grid').innerHTML='<div class="empty" style="padding:1.5rem">Belum ada slot untuk tanggal ini.<br><span style="font-size:11px">Tambahkan slot baru di atas.</span></div>';
-    } else {
-      let html='<div style="display:flex;flex-direction:column;gap:6px">';
+    // Ambil bookings dengan shoot_date = d (terintegrasi)
+    const [bookings, slots] = await Promise.all([
+      db('bookings',{filter:`&shoot_date=eq.${d}`,order:'shoot_time.asc',select:'id,name,shoot_time,session_type,package,status'}),
+      db('slots',{filter:`&slot_date=eq.${d}`,order:'slot_time.asc'})
+    ]);
+
+    // Tampilkan booking yang ada di tanggal ini (dari data booking)
+    let bookingHtml='';
+    if(bookings.length){
+      bookingHtml=`<div style="margin-bottom:.875rem">
+        <div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:.5rem;display:flex;align-items:center;gap:6px"><span style="width:6px;height:6px;border-radius:50%;background:var(--neon);display:inline-block"></span>Dari Data Booking</div>`;
+      bookings.forEach(b=>{
+        bookingHtml+=`<div class="sched-booking-item">
+          <span class="sched-time">${b.shoot_time||'—'}</span>
+          <div style="flex:1"><div style="font-size:13px;color:var(--text);font-weight:500">${b.name}</div>
+          <div style="font-size:11px;color:var(--text3)">${b.session_type||''} · ${b.package||''}</div></div>
+          <span class="badge b-neon" style="font-size:10px">${STAGES[b.status]||'—'}</span>
+        </div>`;
+      });
+      bookingHtml+='</div>';
+    }
+
+    // Slot manual
+    let slotHtml='';
+    if(slots.length){
+      slotHtml=`<div style="margin-bottom:.5rem">
+        <div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:.5rem;display:flex;align-items:center;gap:6px"><span style="width:6px;height:6px;border-radius:50%;background:var(--accent2);display:inline-block"></span>Slot Manual</div>`;
       slots.forEach(s=>{
-        html+=`<div style="display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--bg3);border:1px solid var(--border);border-radius:var(--r)">
-          <span class="badge b-neon" style="font-size:12px;min-width:52px;justify-content:center">${s.slot_time}</span>
+        slotHtml+=`<div class="sched-manual-item">
+          <span class="sched-time manual">${s.slot_time||'—'}</span>
           <span style="flex:1;font-size:13px;color:var(--text)">${s.client_name||'—'}</span>
           <button class="btn btn-sm btn-danger" style="padding:3px 9px;font-size:11px" onclick="deleteSlot('${s.id}','${s.slot_time}','${(s.client_name||'').replace(/'/g,"\\'")}')">Hapus</button>
         </div>`;
       });
-      html+='</div>';
-      document.getElementById('slot-grid').innerHTML=html;
+      slotHtml+='</div>';
+    }
+
+    if(!bookings.length && !slots.length){
+      document.getElementById('slot-grid').innerHTML='<div class="empty" style="padding:1.5rem">Belum ada jadwal untuk tanggal ini.<br><span style="font-size:11px">Tambahkan slot manual di atas.</span></div>';
+    } else {
+      document.getElementById('slot-grid').innerHTML = bookingHtml + slotHtml;
     }
     loadConfirmedSlots();
   }catch(e){ toast('Gagal memuat slot: '+e.message,'error'); }
@@ -948,11 +993,10 @@ async function confirmSlot(){
   if(!d){ toast('Pilih tanggal dulu!','error'); return; }
   if(!t){ toast('Isi jam slot dulu!','error'); return; }
   if(!client){ toast('Isi nama client dulu!','error'); return; }
-  // Format time to HH:MM
-  const slotTime = t.length === 5 ? t : t.slice(0,5);
+  const slotTime = t.slice(0,5);
   try{
-    await dbPost('slots',{slot_date:d, slot_time:slotTime, client_name:client});
-    await addLog('Slot '+slotTime+' tgl '+d+' dikonfirmasi untuk '+client);
+    await dbPost('slots',{slot_date:d,slot_time:slotTime,client_name:client});
+    await addLog('Slot manual: '+slotTime+' tgl '+d+' → '+client);
     toast('Slot '+slotTime+' → '+client+' berhasil ditambahkan!','success');
     timeInput.value='';
     clientInput.value='';
@@ -968,15 +1012,30 @@ async function loadConfirmedSlots(){
   const d = document.getElementById('slot-date').value;
   if(!d){ document.getElementById('confirmed-list').innerHTML='<div class="empty">Pilih tanggal</div>'; return; }
   try{
-    const slots = await db('slots',{filter:`&slot_date=eq.${d}`,order:'slot_time.asc'});
-    if(!slots.length){
-      document.getElementById('confirmed-list').innerHTML='<div class="empty">Belum ada slot untuk tanggal ini</div>';
+    const [bookings, slots] = await Promise.all([
+      db('bookings',{filter:`&shoot_date=eq.${d}`,order:'shoot_time.asc',select:'id,name,shoot_time,session_type,status'}),
+      db('slots',{filter:`&slot_date=eq.${d}`,order:'slot_time.asc'})
+    ]);
+    if(!bookings.length && !slots.length){
+      document.getElementById('confirmed-list').innerHTML='<div class="empty">Belum ada jadwal untuk tanggal ini</div>';
       return;
     }
     let html='';
+    // Dari bookings
+    bookings.forEach(b=>{
+      html+=`<div style="display:flex;justify-content:space-between;align-items:center;padding:9px 0;border-bottom:1px solid var(--border)">
+        <span style="font-family:var(--font-head);font-size:12px;font-weight:600;color:var(--neon);min-width:50px">${b.shoot_time||'—'}</span>
+        <div style="flex:1;margin:0 10px">
+          <div style="font-size:13px;color:var(--text)">${b.name}</div>
+          <div style="font-size:11px;color:var(--text3)">${b.session_type||''} · ${STAGES[b.status]||'—'}</div>
+        </div>
+        <span class="badge b-neon" style="font-size:10px">Booking</span>
+      </div>`;
+    });
+    // Slot manual
     slots.forEach(s=>{
       html+=`<div style="display:flex;justify-content:space-between;align-items:center;padding:9px 0;border-bottom:1px solid var(--border)">
-        <span class="badge b-neon" style="font-size:11px">${s.slot_time}</span>
+        <span style="font-family:var(--font-head);font-size:12px;font-weight:600;color:var(--accent2);min-width:50px">${s.slot_time||'—'}</span>
         <span style="font-size:13px;color:var(--text);flex:1;margin:0 10px">${s.client_name||'—'}</span>
         <button class="btn btn-sm btn-danger" style="padding:2px 8px;font-size:10px" onclick="deleteSlot('${s.id}','${s.slot_time}','${(s.client_name||'').replace(/'/g,"\\'")}')">×</button>
       </div>`;
@@ -1001,459 +1060,279 @@ async function loadLogs(){
   try{
     const logs=await db('activity_logs',{order:'created_at.desc',limit:100});
     if(!logs.length){ document.getElementById('log-list').innerHTML='<div class="empty">Belum ada aktivitas</div>'; return; }
-    let html='';
-    logs.forEach(l=>{
-      html+=`<div class="log-row"><span class="log-time">${fmtDT(l.created_at)}</span><span class="log-msg">${l.message}</span></div>`;
-    });
-    document.getElementById('log-list').innerHTML=html;
+    document.getElementById('log-list').innerHTML=logs.map(l=>`
+      <div class="log-row"><span class="log-time">${fmtDT(l.created_at)}</span><span class="log-msg">${l.message}</span></div>`).join('');
   }catch(e){ toast('Gagal load log','error'); }
 }
 
-// ─── SETTINGS: TIPE SESI & PAKET ────────────────────────────────────────────
-
+// ─── SETTINGS: TIPE SESI ─────────────────────────────────────────────────────
 const DEFAULT_SESI = ['Prewedding','Portrait','Produk','Event','Family','Maternity','Lainnya'];
-const DEFAULT_PAKET = [
-  {name:'Silver', dur:'2 Jam'},
-  {name:'Gold', dur:'4 Jam'},
-  {name:'Platinum', dur:'Full Day'}
-];
+const DEFAULT_PAKET = [{name:'Silver',dur:'2 Jam'},{name:'Gold',dur:'4 Jam'},{name:'Platinum',dur:'Full Day'}];
 
-function getSesiList(){
-  try{ return JSON.parse(localStorage.getItem('lensera_sesi')||'null') || DEFAULT_SESI.slice(); }
-  catch(e){ return DEFAULT_SESI.slice(); }
-}
-function saveSesiList(list){
-  localStorage.setItem('lensera_sesi', JSON.stringify(list));
-}
-function getPaketList(){
-  try{ return JSON.parse(localStorage.getItem('lensera_paket')||'null') || DEFAULT_PAKET.slice(); }
-  catch(e){ return DEFAULT_PAKET.slice(); }
-}
-function savePaketList(list){
-  localStorage.setItem('lensera_paket', JSON.stringify(list));
-}
-function paketLabel(p){ return p.name + (p.dur ? ' – ' + p.dur : ''); }
+function getSesiList(){ try{ return JSON.parse(localStorage.getItem('lensera_sesi')||'null')||DEFAULT_SESI.slice(); }catch(e){ return DEFAULT_SESI.slice(); } }
+function saveSesiList(list){ localStorage.setItem('lensera_sesi',JSON.stringify(list)); }
+function getPaketList(){ try{ return JSON.parse(localStorage.getItem('lensera_paket')||'null')||DEFAULT_PAKET.slice(); }catch(e){ return DEFAULT_PAKET.slice(); } }
+function savePaketList(list){ localStorage.setItem('lensera_paket',JSON.stringify(list)); }
+function paketLabel(p){ return p.name+(p.dur?' – '+p.dur:''); }
 
 function renderSesiList(){
-  const list = getSesiList();
-  document.getElementById('sesi-count').textContent = list.length + ' sesi';
-  let html = '';
-  list.forEach((s, i) => {
-    html += `<div style="display:flex;align-items:center;gap:.5rem;padding:7px 0;border-bottom:1px solid var(--border)">
-      <div id="sesi-view-${i}" style="flex:1;display:flex;align-items:center;gap:.5rem">
-        <span style="font-size:13px;color:var(--text)">${s}</span>
-      </div>
-      <div id="sesi-edit-${i}" style="flex:1;display:none">
-        <input type="text" id="sesi-input-${i}" value="${s}" style="font-size:12px;padding:5px 8px">
-      </div>
-      <button class="btn btn-sm" style="color:var(--accent2);border-color:rgba(124,106,247,.3);padding:3px 8px;font-size:11px" onclick="toggleSesiEdit(${i})">✎</button>
-      <button class="btn btn-sm btn-primary" id="sesi-save-btn-${i}" style="display:none;padding:3px 10px;font-size:11px" onclick="saveSesiEdit(${i})">Simpan</button>
-      <button class="btn btn-sm btn-danger" style="padding:3px 8px;font-size:11px" onclick="deleteSesi(${i})">×</button>
-    </div>`;
-  });
-  if(!html) html = '<div class="empty" style="padding:1rem">Belum ada tipe sesi. Tambahkan dulu!</div>';
-  document.getElementById('sesi-list').innerHTML = html;
+  const list=getSesiList();
+  document.getElementById('sesi-count').textContent=list.length+' sesi';
+  document.getElementById('sesi-list').innerHTML=list.length
+    ? list.map((s,i)=>`<div style="display:flex;align-items:center;gap:.5rem;padding:7px 0;border-bottom:1px solid var(--border)">
+        <div id="sesi-view-${i}" style="flex:1;display:flex;align-items:center"><span style="font-size:13px;color:var(--text)">${s}</span></div>
+        <div id="sesi-edit-${i}" style="flex:1;display:none"><input type="text" id="sesi-input-${i}" value="${s}" style="font-size:12px;padding:5px 8px"></div>
+        <button class="btn btn-sm" style="color:var(--accent2);border-color:rgba(124,106,247,.3);padding:3px 8px;font-size:11px" onclick="toggleSesiEdit(${i})">✎</button>
+        <button class="btn btn-sm btn-primary" id="sesi-save-btn-${i}" style="display:none;padding:3px 10px;font-size:11px" onclick="saveSesiEdit(${i})">Simpan</button>
+        <button class="btn btn-sm btn-danger" style="padding:3px 8px;font-size:11px" onclick="deleteSesi(${i})">×</button>
+      </div>`).join('')
+    : '<div class="empty" style="padding:1rem">Belum ada tipe sesi.</div>';
   refreshSesiDropdowns();
 }
 
 function toggleSesiEdit(i){
-  const view = document.getElementById('sesi-view-'+i);
-  const edit = document.getElementById('sesi-edit-'+i);
-  const saveBtn = document.getElementById('sesi-save-btn-'+i);
-  const isEditing = edit.style.display !== 'none';
-  view.style.display = isEditing ? 'flex' : 'none';
-  edit.style.display = isEditing ? 'none' : 'block';
-  saveBtn.style.display = isEditing ? 'none' : 'inline-flex';
+  const view=document.getElementById('sesi-view-'+i), edit=document.getElementById('sesi-edit-'+i), btn=document.getElementById('sesi-save-btn-'+i);
+  const isEditing=edit.style.display!=='none';
+  view.style.display=isEditing?'flex':'none'; edit.style.display=isEditing?'none':'block'; btn.style.display=isEditing?'none':'inline-flex';
 }
-
-function saveSesiEdit(i){
-  const list = getSesiList();
-  const val = document.getElementById('sesi-input-'+i).value.trim();
-  if(!val){ toast('Nama sesi tidak boleh kosong!','error'); return; }
-  list[i] = val;
-  saveSesiList(list);
-  toast('Tipe sesi diperbarui!','success');
-  renderSesiList();
-}
-
-function deleteSesi(i){
-  const list = getSesiList();
-  showModal('Hapus Tipe Sesi', 'Hapus "'+list[i]+'"? Booking yang sudah ada tidak terpengaruh.', ()=>{
-    list.splice(i,1);
-    saveSesiList(list);
-    toast('Tipe sesi dihapus','info');
-    renderSesiList();
-  });
-}
-
-function addSesi(){
-  const input = document.getElementById('new-sesi-name');
-  const val = input.value.trim();
-  if(!val){ toast('Isi nama tipe sesi dulu!','error'); return; }
-  const list = getSesiList();
-  if(list.includes(val)){ toast('Tipe sesi sudah ada!','error'); return; }
-  list.push(val);
-  saveSesiList(list);
-  input.value = '';
-  toast('Tipe sesi "'+val+'" ditambahkan!','success');
-  renderSesiList();
-}
+function saveSesiEdit(i){ const list=getSesiList(); const val=document.getElementById('sesi-input-'+i).value.trim(); if(!val){toast('Nama sesi tidak boleh kosong!','error');return;} list[i]=val; saveSesiList(list); toast('Tipe sesi diperbarui!','success'); renderSesiList(); }
+function deleteSesi(i){ const list=getSesiList(); showModal('Hapus Tipe Sesi','Hapus "'+list[i]+'"?',()=>{ list.splice(i,1); saveSesiList(list); toast('Tipe sesi dihapus','info'); renderSesiList(); }); }
+function addSesi(){ const input=document.getElementById('new-sesi-name'); const val=input.value.trim(); if(!val){toast('Isi nama tipe sesi dulu!','error');return;} const list=getSesiList(); if(list.includes(val)){toast('Tipe sesi sudah ada!','error');return;} list.push(val); saveSesiList(list); input.value=''; toast('Tipe sesi "'+val+'" ditambahkan!','success'); renderSesiList(); }
 
 function refreshSesiDropdowns(){
-  const list = getSesiList();
-  ['f-type'].forEach(id => {
-    const el = document.getElementById(id);
-    if(!el) return;
-    const cur = el.value;
-    el.innerHTML = list.map(s=>`<option${s===cur?' selected':''}>${s}</option>`).join('');
+  const list=getSesiList();
+  ['f-type','iwa-type'].forEach(id=>{
+    const el=document.getElementById(id); if(!el)return;
+    const cur=el.value;
+    el.innerHTML=list.map(s=>`<option${s===cur?' selected':''}>${s}</option>`).join('');
   });
 }
 
 // ─── PAKET ───────────────────────────────────────────────────────────────────
 function renderPaketList(){
-  const list = getPaketList();
-  document.getElementById('paket-count').textContent = list.length + ' paket';
-  let html = '';
-  list.forEach((p, i) => {
-    html += `<div style="display:flex;align-items:center;gap:.5rem;padding:7px 0;border-bottom:1px solid var(--border)">
-      <div id="paket-view-${i}" style="flex:1;display:flex;align-items:center;gap:6px">
-        <span style="font-size:13px;color:var(--text);font-weight:500">${p.name}</span>
-        ${p.dur ? `<span class="badge b-gray" style="font-size:10px">${p.dur}</span>` : ''}
-      </div>
-      <div id="paket-edit-${i}" style="flex:1;display:none;gap:.4rem">
-        <input type="text" id="paket-name-${i}" value="${p.name}" placeholder="Nama" style="font-size:12px;padding:5px 8px;width:50%">
-        <input type="text" id="paket-dur-${i}" value="${p.dur||''}" placeholder="Durasi" style="font-size:12px;padding:5px 8px;width:50%">
-      </div>
-      <button class="btn btn-sm" style="color:var(--accent2);border-color:rgba(124,106,247,.3);padding:3px 8px;font-size:11px" onclick="togglePaketEdit(${i})">✎</button>
-      <button class="btn btn-sm btn-primary" id="paket-save-btn-${i}" style="display:none;padding:3px 10px;font-size:11px" onclick="savePaketEdit(${i})">Simpan</button>
-      <button class="btn btn-sm btn-danger" style="padding:3px 8px;font-size:11px" onclick="deletePaket(${i})">×</button>
-    </div>`;
-  });
-  if(!html) html = '<div class="empty" style="padding:1rem">Belum ada paket. Tambahkan dulu!</div>';
-  document.getElementById('paket-list').innerHTML = html;
+  const list=getPaketList();
+  document.getElementById('paket-count').textContent=list.length+' paket';
+  document.getElementById('paket-list').innerHTML=list.length
+    ? list.map((p,i)=>`<div style="display:flex;align-items:center;gap:.5rem;padding:7px 0;border-bottom:1px solid var(--border)">
+        <div id="paket-view-${i}" style="flex:1;display:flex;align-items:center;gap:6px">
+          <span style="font-size:13px;color:var(--text);font-weight:500">${p.name}</span>
+          ${p.dur?`<span class="badge b-gray" style="font-size:10px">${p.dur}</span>`:''}
+        </div>
+        <div id="paket-edit-${i}" style="flex:1;display:none;gap:.4rem">
+          <input type="text" id="paket-name-${i}" value="${p.name}" placeholder="Nama" style="font-size:12px;padding:5px 8px;width:50%">
+          <input type="text" id="paket-dur-${i}" value="${p.dur||''}" placeholder="Durasi" style="font-size:12px;padding:5px 8px;width:50%">
+        </div>
+        <button class="btn btn-sm" style="color:var(--accent2);border-color:rgba(124,106,247,.3);padding:3px 8px;font-size:11px" onclick="togglePaketEdit(${i})">✎</button>
+        <button class="btn btn-sm btn-primary" id="paket-save-btn-${i}" style="display:none;padding:3px 10px;font-size:11px" onclick="savePaketEdit(${i})">Simpan</button>
+        <button class="btn btn-sm btn-danger" style="padding:3px 8px;font-size:11px" onclick="deletePaket(${i})">×</button>
+      </div>`).join('')
+    : '<div class="empty" style="padding:1rem">Belum ada paket.</div>';
   refreshPaketDropdowns();
 }
 
-function togglePaketEdit(i){
-  const view = document.getElementById('paket-view-'+i);
-  const edit = document.getElementById('paket-edit-'+i);
-  const saveBtn = document.getElementById('paket-save-btn-'+i);
-  const isEditing = edit.style.display !== 'none';
-  view.style.display = isEditing ? 'flex' : 'none';
-  edit.style.display = isEditing ? 'none' : 'flex';
-  saveBtn.style.display = isEditing ? 'none' : 'inline-flex';
-}
-
-function savePaketEdit(i){
-  const list = getPaketList();
-  const name = document.getElementById('paket-name-'+i).value.trim();
-  const dur = document.getElementById('paket-dur-'+i).value.trim();
-  if(!name){ toast('Nama paket tidak boleh kosong!','error'); return; }
-  list[i] = {name, dur};
-  savePaketList(list);
-  toast('Paket diperbarui!','success');
-  renderPaketList();
-}
-
-function deletePaket(i){
-  const list = getPaketList();
-  showModal('Hapus Paket', 'Hapus paket "'+paketLabel(list[i])+'"? Booking yang sudah ada tidak terpengaruh.', ()=>{
-    list.splice(i,1);
-    savePaketList(list);
-    toast('Paket dihapus','info');
-    renderPaketList();
-  });
-}
-
-function addPaket(){
-  const nameEl = document.getElementById('new-paket-name');
-  const durEl = document.getElementById('new-paket-dur');
-  const name = nameEl.value.trim();
-  const dur = durEl.value.trim();
-  if(!name){ toast('Isi nama paket dulu!','error'); return; }
-  const list = getPaketList();
-  list.push({name, dur});
-  savePaketList(list);
-  nameEl.value = ''; durEl.value = '';
-  toast('Paket "'+name+'" ditambahkan!','success');
-  renderPaketList();
-}
+function togglePaketEdit(i){ const view=document.getElementById('paket-view-'+i), edit=document.getElementById('paket-edit-'+i), btn=document.getElementById('paket-save-btn-'+i); const isEditing=edit.style.display!=='none'; view.style.display=isEditing?'flex':'none'; edit.style.display=isEditing?'none':'flex'; btn.style.display=isEditing?'none':'inline-flex'; }
+function savePaketEdit(i){ const list=getPaketList(); const name=document.getElementById('paket-name-'+i).value.trim(); const dur=document.getElementById('paket-dur-'+i).value.trim(); if(!name){toast('Nama paket tidak boleh kosong!','error');return;} list[i]={name,dur}; savePaketList(list); toast('Paket diperbarui!','success'); renderPaketList(); }
+function deletePaket(i){ const list=getPaketList(); showModal('Hapus Paket','Hapus "'+paketLabel(list[i])+'"?',()=>{ list.splice(i,1); savePaketList(list); toast('Paket dihapus','info'); renderPaketList(); }); }
+function addPaket(){ const nEl=document.getElementById('new-paket-name'), dEl=document.getElementById('new-paket-dur'); const name=nEl.value.trim(), dur=dEl.value.trim(); if(!name){toast('Isi nama paket dulu!','error');return;} const list=getPaketList(); list.push({name,dur}); savePaketList(list); nEl.value=''; dEl.value=''; toast('Paket "'+name+'" ditambahkan!','success'); renderPaketList(); }
 
 function refreshPaketDropdowns(){
-  const list = getPaketList();
-  ['f-pkg'].forEach(id => {
-    const el = document.getElementById(id);
-    if(!el) return;
-    const cur = el.value;
-    el.innerHTML = list.map(p=>`<option${paketLabel(p)===cur?' selected':''}>${paketLabel(p)}</option>`).join('');
+  const list=getPaketList();
+  ['f-pkg','iwa-pkg'].forEach(id=>{
+    const el=document.getElementById(id); if(!el)return;
+    const cur=el.value;
+    el.innerHTML=list.map(p=>`<option${paketLabel(p)===cur?' selected':''}>${paketLabel(p)}</option>`).join('');
   });
 }
-
 
 // ─── SETTINGS: WORKFLOW STAGES ───────────────────────────────────────────────
 function renderStagesList(){
-  STAGES = getStages();
-  document.getElementById('stages-count').textContent = STAGES.length + ' tahap';
-  let html = '';
-  STAGES.forEach((s, i) => {
-    const isFirst = i === 0;
-    const isLast = i === STAGES.length - 1;
-    html += `<div style="display:flex;align-items:center;gap:.5rem;padding:8px 0;border-bottom:1px solid var(--border)">
+  STAGES=getStages();
+  document.getElementById('stages-count').textContent=STAGES.length+' tahap';
+  document.getElementById('stages-list').innerHTML=STAGES.map((s,i)=>{
+    const isFirst=i===0, isLast=i===STAGES.length-1;
+    return `<div style="display:flex;align-items:center;gap:.5rem;padding:8px 0;border-bottom:1px solid var(--border)">
       <div style="display:flex;flex-direction:column;gap:2px;margin-right:2px">
-        <button class="btn btn-sm" style="padding:1px 6px;font-size:10px;opacity:${isFirst?'0.2':'1'}" ${isFirst?'disabled':''} onclick="moveStage(${i},-1)" title="Naik">▲</button>
-        <button class="btn btn-sm" style="padding:1px 6px;font-size:10px;opacity:${isLast?'0.2':'1'}" ${isLast?'disabled':''} onclick="moveStage(${i},1)" title="Turun">▼</button>
+        <button class="btn btn-sm" style="padding:1px 6px;font-size:10px;opacity:${isFirst?.2:1}" ${isFirst?'disabled':''} onclick="moveStage(${i},-1)">▲</button>
+        <button class="btn btn-sm" style="padding:1px 6px;font-size:10px;opacity:${isLast?.2:1}" ${isLast?'disabled':''} onclick="moveStage(${i},1)">▼</button>
       </div>
       <span style="font-size:11px;color:var(--text3);min-width:18px;text-align:center;font-weight:600">${i+1}</span>
       <div id="stage-view-${i}" style="flex:1;display:flex;align-items:center;gap:6px">
         <span style="font-size:13px;color:var(--text)">${s}</span>
-        ${isLast ? '<span class="badge b-neon" style="font-size:10px">Done</span>' : ''}
+        ${isLast?'<span class="badge b-neon" style="font-size:10px">Done</span>':''}
       </div>
       <div id="stage-edit-${i}" style="flex:1;display:none">
         <input type="text" id="stage-input-${i}" value="${s}" style="font-size:12px;padding:5px 8px">
       </div>
       <button class="btn btn-sm" style="color:var(--accent2);border-color:rgba(124,106,247,.3);padding:3px 8px;font-size:11px" onclick="toggleStageEdit(${i})">✎</button>
       <button class="btn btn-sm btn-primary" id="stage-save-btn-${i}" style="display:none;padding:3px 10px;font-size:11px" onclick="saveStageEdit(${i})">Simpan</button>
-      <button class="btn btn-sm btn-danger" style="padding:3px 8px;font-size:11px" ${STAGES.length<=2?'disabled title="Minimal 2 tahap"':''} onclick="deleteStage(${i})">×</button>
+      <button class="btn btn-sm btn-danger" style="padding:3px 8px;font-size:11px" ${STAGES.length<=2?'disabled':''} onclick="deleteStage(${i})">×</button>
     </div>`;
-  });
-  document.getElementById('stages-list').innerHTML = html;
+  }).join('');
   refreshStagesDropdowns();
 }
 
-function toggleStageEdit(i){
-  const view = document.getElementById('stage-view-'+i);
-  const edit = document.getElementById('stage-edit-'+i);
-  const saveBtn = document.getElementById('stage-save-btn-'+i);
-  const isEditing = edit.style.display !== 'none';
-  view.style.display = isEditing ? 'flex' : 'none';
-  edit.style.display = isEditing ? 'none' : 'block';
-  saveBtn.style.display = isEditing ? 'none' : 'inline-flex';
-}
-
-function saveStageEdit(i){
-  const list = getStages();
-  const val = document.getElementById('stage-input-'+i).value.trim();
-  if(!val){ toast('Nama tahap tidak boleh kosong!','error'); return; }
-  list[i] = val;
-  saveStages(list);
-  STAGES = list;
-  toast('Tahap workflow diperbarui!','success');
-  renderStagesList();
-}
-
-function deleteStage(i){
-  const list = getStages();
-  if(list.length <= 2){ toast('Minimal harus ada 2 tahap workflow!','error'); return; }
-  showModal('Hapus Tahap', 'Hapus tahap "'+list[i]+'"? Project yang sudah di tahap ini tidak terpengaruh.', ()=>{
-    list.splice(i,1);
-    saveStages(list);
-    STAGES = list;
-    toast('Tahap dihapus','info');
-    renderStagesList();
-  });
-}
-
-function moveStage(i, dir){
-  const list = getStages();
-  const j = i + dir;
-  if(j < 0 || j >= list.length) return;
-  [list[i], list[j]] = [list[j], list[i]];
-  saveStages(list);
-  STAGES = list;
-  renderStagesList();
-}
-
-function addStage(){
-  const nameEl = document.getElementById('new-stage-name');
-  const pos = document.getElementById('new-stage-pos').value;
-  const val = nameEl.value.trim();
-  if(!val){ toast('Isi nama tahap dulu!','error'); return; }
-  const list = getStages();
-  if(pos === 'start') list.unshift(val);
-  else list.push(val);
-  saveStages(list);
-  STAGES = list;
-  nameEl.value = '';
-  toast('Tahap "'+val+'" ditambahkan!','success');
-  renderStagesList();
-}
+function toggleStageEdit(i){ const view=document.getElementById('stage-view-'+i), edit=document.getElementById('stage-edit-'+i), btn=document.getElementById('stage-save-btn-'+i); const isEditing=edit.style.display!=='none'; view.style.display=isEditing?'flex':'none'; edit.style.display=isEditing?'none':'block'; btn.style.display=isEditing?'none':'inline-flex'; }
+function saveStageEdit(i){ const list=getStages(); const val=document.getElementById('stage-input-'+i).value.trim(); if(!val){toast('Nama tahap tidak boleh kosong!','error');return;} list[i]=val; saveStages(list); STAGES=list; toast('Tahap diperbarui!','success'); renderStagesList(); }
+function deleteStage(i){ const list=getStages(); if(list.length<=2){toast('Minimal 2 tahap!','error');return;} showModal('Hapus Tahap','Hapus "'+list[i]+'"?',()=>{ list.splice(i,1); saveStages(list); STAGES=list; toast('Tahap dihapus','info'); renderStagesList(); }); }
+function moveStage(i,dir){ const list=getStages(); const j=i+dir; if(j<0||j>=list.length)return; [list[i],list[j]]=[list[j],list[i]]; saveStages(list); STAGES=list; renderStagesList(); }
+function addStage(){ const nEl=document.getElementById('new-stage-name'), pos=document.getElementById('new-stage-pos').value; const val=nEl.value.trim(); if(!val){toast('Isi nama tahap dulu!','error');return;} const list=getStages(); if(pos==='start')list.unshift(val); else list.push(val); saveStages(list); STAGES=list; nEl.value=''; toast('Tahap "'+val+'" ditambahkan!','success'); renderStagesList(); }
 
 function refreshStagesDropdowns(){
-  // Filter dropdown in projects page
-  const projFilter = document.getElementById('proj-filter');
-  if(projFilter){
-    const cur = projFilter.value;
-    projFilter.innerHTML = '<option value="">Semua Status</option>' +
-      STAGES.map((s,i)=>`<option value="${i}"${String(i)===cur?' selected':''}>${s}</option>`).join('');
-  }
+  const projFilter=document.getElementById('proj-filter');
+  if(projFilter){ const cur=projFilter.value; projFilter.innerHTML='<option value="">Semua Status</option>'+STAGES.map((s,i)=>`<option value="${i}"${String(i)===cur?' selected':''}>${s}</option>`).join(''); }
 }
 
 // ─── IMPORT WA ───────────────────────────────────────────────────────────────
 function initImportWaDropdowns(){
-  const sesiList = getSesiList();
-  const paketList = getPaketList();
-  const typeEl = document.getElementById('iwa-type');
-  const pkgEl = document.getElementById('iwa-pkg');
-  if(typeEl) typeEl.innerHTML = sesiList.map(s=>`<option>${s}</option>`).join('');
-  if(pkgEl) pkgEl.innerHTML = paketList.map(p=>`<option>${paketLabel(p)}</option>`).join('');
+  refreshSesiDropdowns();
+  refreshPaketDropdowns();
 }
 
 function parseWaGet(text, pattern){
-  const m = text.match(new RegExp(pattern + '\\s*:\\s*(.+)', 'i'));
+  const m = text.match(new RegExp(pattern+'\\s*:\\s*(.+)', 'i'));
   return m ? m[1].trim() : null;
 }
 
 function parseWaDate(str){
   if(!str) return null;
-  const bulan = {
-    januari:1,februari:2,maret:3,april:4,mei:5,juni:6,
-    juli:7,agustus:8,september:9,oktober:10,november:11,desember:12
-  };
-  const m = str.trim().match(/(\d{1,2})\s+(\w+)\s+(\d{4})/i);
+  const bulan={januari:1,februari:2,maret:3,april:4,mei:5,juni:6,juli:7,agustus:8,september:9,oktober:10,november:11,desember:12};
+  const m=str.trim().match(/(\d{1,2})\s+(\w+)\s+(\d{4})/i);
   if(!m) return null;
-  const mon = bulan[m[2].toLowerCase()];
+  const mon=bulan[m[2].toLowerCase()];
   if(!mon) return null;
   return `${m[3]}-${String(mon).padStart(2,'0')}-${m[1].padStart(2,'0')}`;
 }
 
+function parseWaTime(str){
+  if(!str) return null;
+  // terima format "09:00", "9:00", "09.00", "9.00 WIB", dll
+  const m=str.match(/(\d{1,2})[:.]\s*(\d{2})/);
+  if(!m) return null;
+  return m[1].padStart(2,'0')+':'+m[2];
+}
+
 function parseWaText(){
-  const raw = document.getElementById('iwa-raw').value.trim();
-  if(!raw){ toast('Paste teks WA dulu!','error'); return; }
+  const raw=document.getElementById('iwa-raw').value.trim();
+  if(!raw){toast('Paste teks WA dulu!','error');return;}
 
-  // Ambil hanya bagian dari "Form Booking" ke bawah
-  // lalu potong sebelum baris "Note :", nama bank, atau info pembayaran
-  let working = raw;
-  const formStart = raw.search(/Form\s*Booking/i);
-  if(formStart !== -1) working = raw.slice(formStart);
+  let working=raw;
+  const formStart=raw.search(/Form\s*Booking/i);
+  if(formStart!==-1) working=raw.slice(formStart);
 
-  // Potong di baris yang berisi kata-kata diluar form
-  const stopPatterns = [
-    /^Note\s*:/im,
-    /^Payment\s+via/im,
-    /^Booking\s+Quota/im,
-    /^Bank\s/im,
-    /^\d{10,}/m,           // nomor rekening (deretan angka panjang)
-    /^[A-Z\s]{8,}$/m,      // nama kapital semua (nama penerima bank)
-  ];
-  let cutAt = working.length;
-  stopPatterns.forEach(pat => {
-    const m = working.search(pat);
-    if(m !== -1 && m < cutAt) cutAt = m;
-  });
-  working = working.slice(0, cutAt).trim();
+  // Potong di bagian info pembayaran/bank
+  const stopPatterns=[/^Note\s*:/im,/^Payment\s+via/im,/^Booking\s+Quota/im,/^Bank\s/im,/^\d{10,}/m,/^[A-Z\s]{8,}$/m];
+  let cutAt=working.length;
+  stopPatterns.forEach(pat=>{ const m=working.search(pat); if(m!==-1&&m<cutAt)cutAt=m; });
+  working=working.slice(0,cutAt).trim();
 
-  const nama      = parseWaGet(working, 'Nama(?!\\s+Instagram)');
-  const noWa      = parseWaGet(working, 'No\\.?\\s*WA');
-  const paket     = parseWaGet(working, 'Paket\\s*Foto');
-  const tglFoto   = parseWaGet(working, 'Tanggal\\s*Foto');
-  const jenis     = parseWaGet(working, 'Jenis\\s*[Aa]cara');
-  const lokasi    = parseWaGet(working, 'Lokasi\\s*[Aa]cara');
-  const ig        = parseWaGet(working, 'Nama\\s*Instagram');
-  const dp        = parseWaGet(working, 'Jumlah\\s*DP\\s*\\/\\s*LUNAS');
+  const nama    = parseWaGet(working,'Nama(?!\\s+Instagram)');
+  const noWa    = parseWaGet(working,'No\\.?\\s*WA');
+  const paket   = parseWaGet(working,'Paket\\s*(?:Foto)?');
+  const tglFoto = parseWaGet(working,'Tanggal\\s*Foto');
+  const jamFoto = parseWaGet(working,'Jam\\s*(?:Foto|Shoot)?');
+  const jenis   = parseWaGet(working,'Jenis\\s*[Aa]cara');
+  const lokasi  = parseWaGet(working,'Lokasi\\s*[Aa]cara');
+  const ig      = parseWaGet(working,'Nama\\s*Instagram');
+  const dp      = parseWaGet(working,'Jumlah\\s*DP\\s*\\/\\s*LUNAS');
 
   const shootDate = parseWaDate(tglFoto);
+  const shootTime = parseWaTime(jamFoto);
 
-  // Isi field
-  document.getElementById('iwa-name').value   = nama || '';
-  document.getElementById('iwa-phone').value  = noWa ? noWa.replace(/[^0-9+]/g,'') : '';
-  document.getElementById('iwa-bdate').value  = today();
-  document.getElementById('iwa-sdate').value  = shootDate || '';
+  document.getElementById('iwa-name').value  = nama||'';
+  document.getElementById('iwa-phone').value = noWa?noWa.replace(/[^0-9+]/g,''):'';
+  document.getElementById('iwa-bdate').value = today();
+  document.getElementById('iwa-sdate').value = shootDate||'';
+  document.getElementById('iwa-stime').value = shootTime||'';
 
-  // Tipe sesi — coba cocokkan
-  const typeEl = document.getElementById('iwa-type');
-  if(jenis && typeEl){
-    const opts = Array.from(typeEl.options);
-    const match = opts.find(o => o.value.toLowerCase().includes(jenis.toLowerCase()) || jenis.toLowerCase().includes(o.value.toLowerCase()));
-    if(match) typeEl.value = match.value;
+  // Tipe sesi — cocokkan
+  const typeEl=document.getElementById('iwa-type');
+  if(jenis&&typeEl){
+    const match=Array.from(typeEl.options).find(o=>o.value.toLowerCase().includes(jenis.toLowerCase())||jenis.toLowerCase().includes(o.value.toLowerCase()));
+    if(match) typeEl.value=match.value;
   }
 
-  // Paket — coba cocokkan
-  const pkgEl = document.getElementById('iwa-pkg');
-  if(paket && pkgEl){
-    const opts = Array.from(pkgEl.options);
-    const match = opts.find(o => o.value.toLowerCase().includes(paket.toLowerCase()) || paket.toLowerCase().includes(o.value.toLowerCase()));
-    if(match) pkgEl.value = match.value;
+  // Paket — cocokkan
+  const pkgEl=document.getElementById('iwa-pkg');
+  if(paket&&pkgEl){
+    const match=Array.from(pkgEl.options).find(o=>o.value.toLowerCase().includes(paket.toLowerCase())||paket.toLowerCase().includes(o.value.toLowerCase()));
+    if(match) pkgEl.value=match.value;
   }
 
   // Catatan gabungan
-  const notes = [
-    jenis   ? `Jenis Acara: ${jenis}`     : null,
-    lokasi  ? `Lokasi: ${lokasi}`          : null,
-    ig      ? `Instagram: @${ig.replace(/^@/,'')}`  : null,
-    dp      ? `DP/Lunas: ${dp}`            : null,
+  const notes=[
+    jenis  ?'Jenis Acara: '+jenis :null,
+    lokasi ?'Lokasi: '+lokasi     :null,
+    ig     ?'Instagram: @'+ig.replace(/^@/,''):null,
+    dp     ?'DP/Lunas: '+dp       :null,
   ].filter(Boolean).join('\n');
-  document.getElementById('iwa-notes').value = notes;
+  document.getElementById('iwa-notes').value=notes;
 
-  // Warnings — field yang tidak kebaca
-  const warns = [];
+  const warns=[];
   if(!nama)     warns.push('⚠ Nama tidak terbaca');
   if(!noWa)     warns.push('⚠ No. WA tidak terbaca');
   if(!tglFoto)  warns.push('⚠ Tanggal Foto tidak terbaca');
-  if(!shootDate && tglFoto) warns.push('⚠ Format tanggal tidak dikenali — isi manual (contoh: 20 mei 2026)');
+  if(!shootDate&&tglFoto) warns.push('⚠ Format tanggal tidak dikenali (contoh: 20 mei 2026)');
+  if(!shootTime&&jamFoto) warns.push('⚠ Format jam tidak dikenali (contoh: 09:00)');
 
-  const warnEl = document.getElementById('iwa-warnings');
-  if(warns.length){
-    warnEl.style.display = 'block';
-    warnEl.innerHTML = warns.join('<br>');
-  } else {
-    warnEl.style.display = 'none';
-  }
+  const warnEl=document.getElementById('iwa-warnings');
+  warnEl.style.display=warns.length?'block':'none';
+  warnEl.innerHTML=warns.join('<br>');
 
-  const statusEl = document.getElementById('iwa-parse-status');
-  if(!nama && !noWa){
-    statusEl.className = 'badge b-danger';
-    statusEl.textContent = 'Gagal dibaca — cek format';
-  } else if(warns.length){
-    statusEl.className = 'badge b-gold';
-    statusEl.textContent = 'Sebagian terbaca — cek manual';
-  } else {
-    statusEl.className = 'badge b-neon';
-    statusEl.textContent = '✓ Semua terbaca';
-  }
+  const statusEl=document.getElementById('iwa-parse-status');
+  if(!nama&&!noWa){ statusEl.className='badge b-danger'; statusEl.textContent='Gagal dibaca — cek format'; }
+  else if(warns.length){ statusEl.className='badge b-gold'; statusEl.textContent='Sebagian terbaca — cek manual'; }
+  else { statusEl.className='badge b-neon'; statusEl.textContent='✓ Semua terbaca'; }
 
-  // Tampilkan step 2
-  document.getElementById('iwa-step1').style.display = 'none';
-  document.getElementById('iwa-step2').style.display = 'block';
+  document.getElementById('iwa-step1').style.display='none';
+  document.getElementById('iwa-step2').style.display='block';
 }
 
 async function submitImportWa(){
-  const name = document.getElementById('iwa-name').value.trim();
-  if(!name){ toast('Nama client harus diisi!','error'); return; }
-  const btn = document.getElementById('iwa-btn-submit');
-  btn.textContent = 'Menyimpan...'; btn.disabled = true;
+  const name=document.getElementById('iwa-name').value.trim();
+  if(!name){toast('Nama client harus diisi!','error');return;}
+  const btn=document.getElementById('iwa-btn-submit');
+  btn.textContent='Menyimpan...'; btn.disabled=true;
   try{
-    const data = {
+    const sdate=document.getElementById('iwa-sdate').value||null;
+    const stime=document.getElementById('iwa-stime').value||null;
+    const data={
       name,
-      phone:        document.getElementById('iwa-phone').value,
-      book_date:    document.getElementById('iwa-bdate').value || today(),
-      shoot_date:   document.getElementById('iwa-sdate').value || null,
-      session_type: document.getElementById('iwa-type').value,
-      package:      document.getElementById('iwa-pkg').value,
-      status:       0,
-      notes:        document.getElementById('iwa-notes').value,
-      last_updated: new Date().toISOString(),
+      phone:       document.getElementById('iwa-phone').value,
+      book_date:   document.getElementById('iwa-bdate').value||today(),
+      shoot_date:  sdate,
+      shoot_time:  stime,
+      session_type:document.getElementById('iwa-type').value,
+      package:     document.getElementById('iwa-pkg').value,
+      status:      0,
+      notes:       document.getElementById('iwa-notes').value,
+      last_updated:new Date().toISOString(),
     };
-    await dbPost('bookings', data);
-    await addLog('Booking import WA: '+name+' ('+data.session_type+')');
+    await dbPost('bookings',data);
+    await addLog('Booking import WA: '+name+' ('+data.session_type+')'+(sdate?' · Shoot: '+fmtDate(sdate)+(stime?' '+stime:''):''));
+    // Auto-tambah slot jika ada waktu
+    if(sdate&&stime){
+      try{ await dbPost('slots',{slot_date:sdate,slot_time:stime,client_name:name}); }catch(e){}
+    }
     toast('✓ Booking '+name+' berhasil disimpan!','success');
-    // Reset
-    document.getElementById('iwa-raw').value = '';
-    document.getElementById('iwa-step2').style.display = 'none';
-    document.getElementById('iwa-step1').style.display = 'block';
-    // Pindah ke projects
-    goPage('projects', document.querySelectorAll('.nav-item')[3]);
+    document.getElementById('iwa-raw').value='';
+    document.getElementById('iwa-step2').style.display='none';
+    document.getElementById('iwa-step1').style.display='block';
+    // Pindah ke Projects — nav-item index 3
+    goPage('projects',document.querySelectorAll('.nav-item')[3]);
   }catch(e){ toast('Gagal menyimpan: '+e.message,'error'); }
-  btn.textContent = '💾 Simpan Booking'; btn.disabled = false;
+  btn.textContent='💾 Simpan Booking'; btn.disabled=false;
 }
 
+// ─── INIT ─────────────────────────────────────────────────────────────────────
 document.getElementById('f-bdate').value=today();
 refreshSesiDropdowns();
 refreshPaketDropdowns();
 refreshStagesDropdowns();
 loadDashboard();
+
 setInterval(()=>{
   const active=document.querySelector('.page.active').id;
-  if(active==='page-dashboard')loadDashboard();
+  if(active==='page-dashboard') loadDashboard();
 },30000);
 </script>
 </body>
