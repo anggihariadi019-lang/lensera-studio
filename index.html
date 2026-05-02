@@ -235,6 +235,7 @@
     <nav class="nav">
       <div class="nav-item active" onclick="goPage('dashboard',this)"><span class="nav-icon">◈</span> Dashboard</div>
       <div class="nav-item" onclick="goPage('booking',this)"><span class="nav-icon">+</span> Booking Baru</div>
+      <div class="nav-item" onclick="goPage('importwa',this)"><span class="nav-icon">⇪</span> Import WA</div>
       <div class="nav-item" onclick="goPage('projects',this)"><span class="nav-icon">▦</span> Projects <span class="nav-badge" id="nb-active">0</span></div>
       <div class="nav-item" onclick="goPage('schedule',this)"><span class="nav-icon">◷</span> Jadwal</div>
       <div class="nav-item" onclick="goPage('logs',this)"><span class="nav-icon">≡</span> Activity Log</div>
@@ -307,6 +308,93 @@
           <button class="btn btn-sm" onclick="clearForm()">Reset</button>
           <button class="btn btn-sm btn-primary" onclick="submitBooking()" id="btn-submit">Simpan Booking</button>
         </div>
+      </div>
+    </div>
+
+    <!-- IMPORT WA -->
+    <div class="page" id="page-importwa">
+      <div class="page-title">Import dari WhatsApp</div>
+      <div class="page-sub">Paste teks chat WA dari admin — sistem otomatis baca dan isi form booking</div>
+      <div style="max-width:720px">
+
+        <!-- STEP 1: PASTE -->
+        <div class="card gap" id="iwa-step1">
+          <div class="sec-head" style="margin-bottom:.75rem">
+            <div class="sec-title">📋 Step 1 — Paste Teks WA</div>
+            <span class="badge b-purple">Paste dulu</span>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Teks Form Booking dari WA</label>
+            <textarea id="iwa-raw" rows="10" placeholder="Paste teks chat WA di sini...
+
+Contoh:
+Form Booking
+Nama : Meryl
+No. WA : 081540812889
+Paket Foto : Paket A
+Tanggal Foto : 20 mei 2026
+Jenis acara : Wisuda
+Lokasi acara : Kampus UI
+Nama Instagram: meryll.a_
+Jumlah DP/LUNAS : dp 100.000"></textarea>
+          </div>
+          <div style="display:flex;gap:.5rem;justify-content:flex-end">
+            <button class="btn btn-sm" onclick="document.getElementById('iwa-raw').value=''">Bersihkan</button>
+            <button class="btn btn-sm btn-primary" onclick="parseWaText()">⚡ Parse Otomatis</button>
+          </div>
+        </div>
+
+        <!-- STEP 2: PREVIEW + EDIT -->
+        <div class="card" id="iwa-step2" style="display:none">
+          <div class="sec-head" style="margin-bottom:1rem">
+            <div class="sec-title">✏️ Step 2 — Cek & Edit Hasil Parse</div>
+            <span class="badge b-neon" id="iwa-parse-status">Berhasil dibaca</span>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Nama Client *</label>
+              <input type="text" id="iwa-name" placeholder="Nama client">
+            </div>
+            <div class="form-group">
+              <label class="form-label">No. WhatsApp</label>
+              <input type="text" id="iwa-phone" placeholder="08xx-xxxx-xxxx">
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Tanggal Booking</label>
+              <input type="date" id="iwa-bdate">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Tanggal Foto</label>
+              <input type="date" id="iwa-sdate">
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Jenis Acara / Tipe Sesi</label>
+              <select id="iwa-type"></select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Paket</label>
+              <select id="iwa-pkg"></select>
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Catatan (Lokasi, Instagram, DP, dll)</label>
+            <textarea id="iwa-notes" rows="3"></textarea>
+          </div>
+
+          <!-- Field yang tidak bisa di-parse ditandai merah -->
+          <div id="iwa-warnings" style="display:none;background:rgba(240,90,90,.07);border:1px solid rgba(240,90,90,.2);border-radius:var(--r);padding:.75rem;margin-bottom:.875rem;font-size:12px;color:var(--danger)"></div>
+
+          <div style="display:flex;gap:.5rem;justify-content:flex-end;flex-wrap:wrap">
+            <button class="btn btn-sm" onclick="document.getElementById('iwa-step2').style.display='none';document.getElementById('iwa-step1').style.display='block'">← Kembali</button>
+            <button class="btn btn-sm btn-primary" onclick="submitImportWa()" id="iwa-btn-submit">💾 Simpan Booking</button>
+          </div>
+        </div>
+
       </div>
     </div>
 
@@ -524,6 +612,7 @@ function goPage(id,el){
   if(id==='logs')loadLogs();
   if(id==='schedule'){ const d=document.getElementById('slot-date').value; if(d) loadSlots(); }
   if(id==='settings'){renderSesiList();renderPaketList();renderStagesList();}
+  if(id==='importwa'){initImportWaDropdowns();}
 }
 
 // ─── UTILS ───────────────────────────────────────────────────────────────────
@@ -1197,6 +1286,164 @@ function refreshStagesDropdowns(){
     projFilter.innerHTML = '<option value="">Semua Status</option>' +
       STAGES.map((s,i)=>`<option value="${i}"${String(i)===cur?' selected':''}>${s}</option>`).join('');
   }
+}
+
+// ─── IMPORT WA ───────────────────────────────────────────────────────────────
+function initImportWaDropdowns(){
+  const sesiList = getSesiList();
+  const paketList = getPaketList();
+  const typeEl = document.getElementById('iwa-type');
+  const pkgEl = document.getElementById('iwa-pkg');
+  if(typeEl) typeEl.innerHTML = sesiList.map(s=>`<option>${s}</option>`).join('');
+  if(pkgEl) pkgEl.innerHTML = paketList.map(p=>`<option>${paketLabel(p)}</option>`).join('');
+}
+
+function parseWaGet(text, pattern){
+  const m = text.match(new RegExp(pattern + '\\s*:\\s*(.+)', 'i'));
+  return m ? m[1].trim() : null;
+}
+
+function parseWaDate(str){
+  if(!str) return null;
+  const bulan = {
+    januari:1,februari:2,maret:3,april:4,mei:5,juni:6,
+    juli:7,agustus:8,september:9,oktober:10,november:11,desember:12
+  };
+  const m = str.trim().match(/(\d{1,2})\s+(\w+)\s+(\d{4})/i);
+  if(!m) return null;
+  const mon = bulan[m[2].toLowerCase()];
+  if(!mon) return null;
+  return `${m[3]}-${String(mon).padStart(2,'0')}-${m[1].padStart(2,'0')}`;
+}
+
+function parseWaText(){
+  const raw = document.getElementById('iwa-raw').value.trim();
+  if(!raw){ toast('Paste teks WA dulu!','error'); return; }
+
+  // Ambil hanya bagian dari "Form Booking" ke bawah
+  // lalu potong sebelum baris "Note :", nama bank, atau info pembayaran
+  let working = raw;
+  const formStart = raw.search(/Form\s*Booking/i);
+  if(formStart !== -1) working = raw.slice(formStart);
+
+  // Potong di baris yang berisi kata-kata diluar form
+  const stopPatterns = [
+    /^Note\s*:/im,
+    /^Payment\s+via/im,
+    /^Booking\s+Quota/im,
+    /^Bank\s/im,
+    /^\d{10,}/m,           // nomor rekening (deretan angka panjang)
+    /^[A-Z\s]{8,}$/m,      // nama kapital semua (nama penerima bank)
+  ];
+  let cutAt = working.length;
+  stopPatterns.forEach(pat => {
+    const m = working.search(pat);
+    if(m !== -1 && m < cutAt) cutAt = m;
+  });
+  working = working.slice(0, cutAt).trim();
+
+  const nama      = parseWaGet(working, 'Nama(?!\\s+Instagram)');
+  const noWa      = parseWaGet(working, 'No\\.?\\s*WA');
+  const paket     = parseWaGet(working, 'Paket\\s*Foto');
+  const tglFoto   = parseWaGet(working, 'Tanggal\\s*Foto');
+  const jenis     = parseWaGet(working, 'Jenis\\s*[Aa]cara');
+  const lokasi    = parseWaGet(working, 'Lokasi\\s*[Aa]cara');
+  const ig        = parseWaGet(working, 'Nama\\s*Instagram');
+  const dp        = parseWaGet(working, 'Jumlah\\s*DP\\s*\\/\\s*LUNAS');
+
+  const shootDate = parseWaDate(tglFoto);
+
+  // Isi field
+  document.getElementById('iwa-name').value   = nama || '';
+  document.getElementById('iwa-phone').value  = noWa ? noWa.replace(/[^0-9+]/g,'') : '';
+  document.getElementById('iwa-bdate').value  = today();
+  document.getElementById('iwa-sdate').value  = shootDate || '';
+
+  // Tipe sesi — coba cocokkan
+  const typeEl = document.getElementById('iwa-type');
+  if(jenis && typeEl){
+    const opts = Array.from(typeEl.options);
+    const match = opts.find(o => o.value.toLowerCase().includes(jenis.toLowerCase()) || jenis.toLowerCase().includes(o.value.toLowerCase()));
+    if(match) typeEl.value = match.value;
+  }
+
+  // Paket — coba cocokkan
+  const pkgEl = document.getElementById('iwa-pkg');
+  if(paket && pkgEl){
+    const opts = Array.from(pkgEl.options);
+    const match = opts.find(o => o.value.toLowerCase().includes(paket.toLowerCase()) || paket.toLowerCase().includes(o.value.toLowerCase()));
+    if(match) pkgEl.value = match.value;
+  }
+
+  // Catatan gabungan
+  const notes = [
+    jenis   ? `Jenis Acara: ${jenis}`     : null,
+    lokasi  ? `Lokasi: ${lokasi}`          : null,
+    ig      ? `Instagram: @${ig.replace(/^@/,'')}`  : null,
+    dp      ? `DP/Lunas: ${dp}`            : null,
+  ].filter(Boolean).join('\n');
+  document.getElementById('iwa-notes').value = notes;
+
+  // Warnings — field yang tidak kebaca
+  const warns = [];
+  if(!nama)     warns.push('⚠ Nama tidak terbaca');
+  if(!noWa)     warns.push('⚠ No. WA tidak terbaca');
+  if(!tglFoto)  warns.push('⚠ Tanggal Foto tidak terbaca');
+  if(!shootDate && tglFoto) warns.push('⚠ Format tanggal tidak dikenali — isi manual (contoh: 20 mei 2026)');
+
+  const warnEl = document.getElementById('iwa-warnings');
+  if(warns.length){
+    warnEl.style.display = 'block';
+    warnEl.innerHTML = warns.join('<br>');
+  } else {
+    warnEl.style.display = 'none';
+  }
+
+  const statusEl = document.getElementById('iwa-parse-status');
+  if(!nama && !noWa){
+    statusEl.className = 'badge b-danger';
+    statusEl.textContent = 'Gagal dibaca — cek format';
+  } else if(warns.length){
+    statusEl.className = 'badge b-gold';
+    statusEl.textContent = 'Sebagian terbaca — cek manual';
+  } else {
+    statusEl.className = 'badge b-neon';
+    statusEl.textContent = '✓ Semua terbaca';
+  }
+
+  // Tampilkan step 2
+  document.getElementById('iwa-step1').style.display = 'none';
+  document.getElementById('iwa-step2').style.display = 'block';
+}
+
+async function submitImportWa(){
+  const name = document.getElementById('iwa-name').value.trim();
+  if(!name){ toast('Nama client harus diisi!','error'); return; }
+  const btn = document.getElementById('iwa-btn-submit');
+  btn.textContent = 'Menyimpan...'; btn.disabled = true;
+  try{
+    const data = {
+      name,
+      phone:        document.getElementById('iwa-phone').value,
+      book_date:    document.getElementById('iwa-bdate').value || today(),
+      shoot_date:   document.getElementById('iwa-sdate').value || null,
+      session_type: document.getElementById('iwa-type').value,
+      package:      document.getElementById('iwa-pkg').value,
+      status:       0,
+      notes:        document.getElementById('iwa-notes').value,
+      last_updated: new Date().toISOString(),
+    };
+    await dbPost('bookings', data);
+    await addLog('Booking import WA: '+name+' ('+data.session_type+')');
+    toast('✓ Booking '+name+' berhasil disimpan!','success');
+    // Reset
+    document.getElementById('iwa-raw').value = '';
+    document.getElementById('iwa-step2').style.display = 'none';
+    document.getElementById('iwa-step1').style.display = 'block';
+    // Pindah ke projects
+    goPage('projects', document.querySelectorAll('.nav-item')[3]);
+  }catch(e){ toast('Gagal menyimpan: '+e.message,'error'); }
+  btn.textContent = '💾 Simpan Booking'; btn.disabled = false;
 }
 
 document.getElementById('f-bdate').value=today();
