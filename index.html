@@ -314,14 +314,10 @@ Jumlah DP/LUNAS : dp 100.000"></textarea>
             <div class="form-group"><label class="form-label">Tanggal Booking</label><input type="date" id="iwa-bdate"></div>
             <div class="form-group"><label class="form-label">Tanggal Foto</label><input type="date" id="iwa-sdate" onchange="checkShootDateConflict('iwa-sdate')"></div>
           </div>
-          <div class="form-row">
-            <div class="form-group"><label class="form-label">Jam Foto</label><input type="time" id="iwa-stime"></div>
-            <div class="form-group"><label class="form-label">Jenis Acara / Tipe Sesi</label><select id="iwa-type"></select></div>
-          </div>
+          <div class="form-group"><label class="form-label">Jenis Acara / Tipe Sesi</label><select id="iwa-type"></select></div>
           <div class="form-group"><label class="form-label">Paket</label><select id="iwa-pkg"></select></div>
           <div id="iwa-conflict-warn" style="display:none;background:rgba(240,161,74,.08);border:1px solid rgba(240,161,74,.25);border-radius:var(--r);padding:.65rem .875rem;margin-bottom:.875rem;font-size:12px;color:var(--warn)"></div>
           <div class="form-group"><label class="form-label">Catatan (Lokasi, Instagram, DP, dll)</label><textarea id="iwa-notes" rows="3"></textarea></div>
-          <div id="iwa-slot-info" style="display:none;background:rgba(57,224,155,.07);border:1px solid rgba(57,224,155,.2);border-radius:var(--r);padding:.75rem;margin-bottom:.875rem;font-size:12px;color:var(--neon)"></div>
           <div id="iwa-warnings" style="display:none;background:rgba(240,90,90,.07);border:1px solid rgba(240,90,90,.2);border-radius:var(--r);padding:.75rem;margin-bottom:.875rem;font-size:12px;color:var(--danger)"></div>
           <div style="display:flex;gap:.5rem;justify-content:flex-end;flex-wrap:wrap">
             <button class="btn btn-sm" onclick="document.getElementById('iwa-step2').style.display='none';document.getElementById('iwa-step1').style.display='block'">← Kembali</button>
@@ -949,12 +945,25 @@ async function loadSlots(){
       bookingHtml=`<div style="margin-bottom:.875rem">
         <div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:.5rem;display:flex;align-items:center;gap:6px"><span style="width:6px;height:6px;border-radius:50%;background:var(--neon);display:inline-block"></span>Dari Data Booking</div>`;
       bookings.forEach(b=>{
-        const displayTime = normalizeTime(b.shoot_time) || '—';
-        bookingHtml+=`<div class="sched-booking-item">
-          <span class="sched-time">${displayTime}</span>
+        const displayTime = normalizeTime(b.shoot_time);
+        const timeDisplay = displayTime || '—';
+        const hasTime = !!displayTime;
+        bookingHtml+=`<div class="sched-booking-item" id="sbi-${b.id}">
+          <span class="sched-time" style="${hasTime?'':'color:var(--text3);font-style:italic'}">${timeDisplay}</span>
           <div style="flex:1"><div style="font-size:13px;color:var(--text);font-weight:500">${b.name}</div>
           <div style="font-size:11px;color:var(--text3)">${b.session_type||''} · ${b.package||''}</div></div>
-          <span class="badge b-neon" style="font-size:10px">${STAGES[b.status]||'—'}</span>
+          <div style="display:flex;align-items:center;gap:6px">
+            <span class="badge b-neon" style="font-size:10px">${STAGES[b.status]||'—'}</span>
+            <button class="btn btn-sm" style="padding:3px 8px;font-size:11px;color:var(--accent2);border-color:rgba(157,143,255,.3)" onclick="toggleSetJam('${b.id}','${displayTime||''}')">🕐 ${hasTime?'Edit':'Set'} Jam</button>
+          </div>
+        </div>
+        <div id="setjam-${b.id}" style="display:none;background:var(--bg3);border:1px solid var(--border);border-radius:var(--r);padding:.6rem .875rem;margin-bottom:.5rem;display:none">
+          <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+            <label style="font-size:11px;color:var(--text3)">Jam Shoot:</label>
+            <input type="time" id="setjam-input-${b.id}" value="${displayTime||''}" style="width:130px;font-size:13px;padding:5px 9px">
+            <button class="btn btn-sm btn-primary" style="padding:4px 12px;font-size:12px" onclick="saveJamBooking('${b.id}')">Simpan</button>
+            <button class="btn btn-sm" style="padding:4px 10px;font-size:12px" onclick="document.getElementById('setjam-${b.id}').style.display='none'">Batal</button>
+          </div>
         </div>`;
       });
       bookingHtml+='</div>';
@@ -1206,10 +1215,14 @@ function parseWaDate(str){
 
 function parseWaTime(str){
   if(!str) return null;
-  const m=str.match(/(\d{1,2})[:.]\s*(\d{2})/);
+  // Handle: 08:15, 08.15, 08.15 WIB, pukul 08.15, jam 8, 8 pagi, dll
+  const m = str.match(/(?:pukul\s*|jam\s*)?(\d{1,2})[.:](\d{2})/i)
+          || str.match(/(?:pukul\s*|jam\s*)(\d{1,2})\s*(?:wib|wita|wit)?/i);
   if(!m) return null;
-  // Selalu kembalikan HH:MM (tanpa detik) agar konsisten
-  return m[1].padStart(2,'0')+':'+m[2];
+  const hh = parseInt(m[1],10);
+  const mm = m[2] ? parseInt(m[2],10) : 0;
+  if(hh < 0 || hh > 23 || mm < 0 || mm > 59) return null;
+  return String(hh).padStart(2,'0')+':'+String(mm).padStart(2,'0');
 }
 
 // ─── FIX UTAMA: normalizeTime di findNextAvailableSlot ───────────────────────
@@ -1271,28 +1284,11 @@ async function parseWaText(){
   const dp      = parseWaGet(working,'Jumlah\\s*DP\\s*\\/\\s*LUNAS');
 
   const shootDate = parseWaDate(tglFoto);
-  let shootTime   = parseWaTime(jamFoto);
-  let autoSlotMsg = null;
-
-  if(!shootTime && shootDate){
-    const found = await findNextAvailableSlot(shootDate);
-    if(found && found !== 'ERROR'){
-      shootTime  = found;
-      autoSlotMsg = '✓ Jam tidak tercantum di WA — otomatis dipilih slot kosong: <strong style="color:var(--neon)">'+found+'</strong>';
-    } else if(found === 'ERROR'){
-      // Gagal fetch (koneksi/tabel error) — cari jam 08:00 sebagai fallback default
-      shootTime  = '08:00';
-      autoSlotMsg = '⚠ Jam tidak ada di WA & gagal cek slot (koneksi). Jam default 08:00 dipilih — cek & sesuaikan manual.';
-    } else {
-      autoSlotMsg = '⚠ Jam tidak ada di WA & semua slot 08:00–17:00 sudah penuh di tanggal ini. Isi manual.';
-    }
-  }
 
   document.getElementById('iwa-name').value  = nama||'';
   document.getElementById('iwa-phone').value = noWa?noWa.replace(/[^0-9+]/g,''):'';
   document.getElementById('iwa-bdate').value = today();
   document.getElementById('iwa-sdate').value = shootDate||'';
-  document.getElementById('iwa-stime').value = shootTime||'';
 
   const typeEl=document.getElementById('iwa-type');
   if(jenis&&typeEl){
@@ -1319,21 +1315,9 @@ async function parseWaText(){
   if(!noWa)     warns.push('⚠ No. WA tidak terbaca');
   if(!tglFoto)  warns.push('⚠ Tanggal Foto tidak terbaca');
   if(!shootDate&&tglFoto) warns.push('⚠ Format tanggal tidak dikenali (contoh: 20 mei 2026)');
-  if(!shootTime&&jamFoto) warns.push('⚠ Format jam tidak dikenali (contoh: 09:00)');
-  if(autoSlotMsg && !autoSlotMsg.startsWith('✓')) warns.push(autoSlotMsg);
-
   const warnEl=document.getElementById('iwa-warnings');
   warnEl.style.display=warns.length?'block':'none';
   warnEl.innerHTML=warns.join('<br>');
-
-  // Tampilkan info slot sukses (hijau) terpisah
-  const slotInfoEl=document.getElementById('iwa-slot-info');
-  if(slotInfoEl){
-    if(autoSlotMsg && autoSlotMsg.startsWith('✓')){
-      slotInfoEl.style.display='block';
-      slotInfoEl.innerHTML=autoSlotMsg;
-    } else { slotInfoEl.style.display='none'; }
-  }
 
   const statusEl=document.getElementById('iwa-parse-status');
   if(!nama&&!noWa){ statusEl.className='badge b-danger'; statusEl.textContent='Gagal dibaca — cek format'; }
@@ -1352,7 +1336,7 @@ async function submitImportWa(){
   btn.textContent='Menyimpan...'; btn.disabled=true;
   try{
     const sdate=document.getElementById('iwa-sdate').value||null;
-    const stime=document.getElementById('iwa-stime').value||null;
+    const stime=null;
     const data={
       name,
       phone:       document.getElementById('iwa-phone').value,
@@ -1377,6 +1361,38 @@ async function submitImportWa(){
     goPage('projects',document.querySelectorAll('.nav-item')[3]);
   }catch(e){ toast('Gagal menyimpan: '+e.message,'error'); }
   btn.textContent='💾 Simpan Booking'; btn.disabled=false;
+}
+
+
+// ─── SET JAM BOOKING DARI JADWAL ─────────────────────────────────────────────
+function toggleSetJam(id, currentTime){
+  const panel = document.getElementById('setjam-'+id);
+  if(!panel) return;
+  const isVisible = panel.style.display === 'block';
+  // Tutup semua panel lain dulu
+  document.querySelectorAll('[id^="setjam-"]').forEach(el=>{ if(el.tagName==='DIV') el.style.display='none'; });
+  if(!isVisible){
+    panel.style.display='block';
+    const inp = document.getElementById('setjam-input-'+id);
+    if(inp && currentTime) inp.value = currentTime;
+    if(inp) inp.focus();
+  }
+}
+
+async function saveJamBooking(id){
+  const inp = document.getElementById('setjam-input-'+id);
+  if(!inp) return;
+  const t = inp.value;
+  if(!t){ toast('Isi jam dulu!','error'); return; }
+  const time = t.slice(0,5);
+  try{
+    await dbPatch('bookings','id=eq.'+id,{shoot_time:time,last_updated:new Date().toISOString()});
+    toast('✓ Jam shoot diset: '+time,'success');
+    document.getElementById('setjam-'+id).style.display='none';
+    // Refresh tampilan item tanpa reload penuh
+    const d = document.getElementById('slot-date').value;
+    if(d) loadSlots();
+  }catch(e){ toast('Gagal simpan jam: '+e.message,'error'); }
 }
 
 // ─── INIT ─────────────────────────────────────────────────────────────────────
