@@ -186,6 +186,15 @@
   .modal-body{font-size:13px;color:var(--text2);margin-bottom:1.5rem}
   .modal-actions{display:flex;gap:.5rem;justify-content:flex-end}
 
+  /* DEADLINE UI */
+  .deadline-card{background:rgba(240,90,90,.07);border:1px solid rgba(240,90,90,.25);border-radius:var(--r2);padding:1.25rem;margin-top:1rem}
+  .deadline-card-title{font-family:var(--font-head);font-size:15px;font-weight:600;color:var(--danger);display:flex;align-items:center;gap:8px;margin-bottom:.875rem}
+  .deadline-item{display:flex;align-items:center;gap:10px;padding:9px 12px;background:rgba(240,90,90,.06);border:1px solid rgba(240,90,90,.18);border-radius:var(--r);margin-bottom:6px}
+  .deadline-item:last-child{margin-bottom:0}
+  .deadline-days{background:var(--danger);color:#fff;font-family:var(--font-head);font-weight:700;font-size:12px;padding:3px 8px;border-radius:6px;white-space:nowrap;flex-shrink:0}
+  .deadline-name{flex:1;font-size:13px;font-weight:500;color:var(--text)}
+  .deadline-info{font-size:11px;color:var(--text3)}
+
   /* MOBILE */
   @media(max-width:768px){
     .sidebar{width:100%;height:auto;position:relative;flex-direction:row;flex-wrap:wrap;padding:.5rem}
@@ -249,6 +258,12 @@
         <div class="metric"><div class="metric-num c-gold" id="m-print">—</div><div class="metric-label">Siap Cetak</div></div>
         <div class="metric"><div class="metric-num c-danger" id="m-delay">—</div><div class="metric-label">Overdue</div></div>
       </div>
+      <!-- DEADLINE REMINDER -->
+      <div class="deadline-card" id="deadline-section" style="display:none;margin-bottom:1rem">
+        <div class="deadline-card-title">⚠ Deadline Terlampaui <span class="badge b-danger" id="deadline-count" style="font-size:11px">0</span></div>
+        <div style="font-size:11px;color:var(--danger);opacity:.75;margin-bottom:.75rem">Project berikut sudah melewati batas 2 hari dari tanggal photoshoot dan belum selesai.</div>
+        <div id="deadline-list"></div>
+      </div>
       <div class="g2">
         <div class="card">
           <div class="sec-head"><div class="sec-title">Progress Aktif</div></div>
@@ -287,7 +302,6 @@
             </select>
           </div>
         </div>
-        <div class="form-group"><label class="form-label">Link File Edit (Google Drive / Dropbox)</label><input type="url" id="f-link" placeholder="https://drive.google.com/..."></div>
         <div class="form-group"><label class="form-label">Catatan</label><textarea id="f-notes" placeholder="Preferensi, request khusus..."></textarea></div>
         <div style="display:flex;gap:.5rem;justify-content:flex-end">
           <button class="btn btn-sm" onclick="clearForm()">Reset</button>
@@ -545,6 +559,44 @@ async function loadDashboard(){
     document.getElementById('nb-active').textContent=all.filter(p=>p.status<STAGES.length-1).length;
 
     const active=all.filter(p=>p.status<STAGES.length);
+    
+    // ── DEADLINE CHECK: lebih dari 2 hari dari shoot_date & belum done
+    const now = Date.now();
+    const deadlineItems = all.filter(p=>{
+      if(p.status >= STAGES.length-1) return false; // already done
+      if(!p.shoot_date) return false;
+      const shootTs = new Date(p.shoot_date).getTime();
+      const diffDays = (now - shootTs) / 86400000;
+      return diffDays > 2;
+    }).sort((a,b)=>{
+      return new Date(a.shoot_date).getTime() - new Date(b.shoot_date).getTime();
+    });
+
+    const deadlineSec = document.getElementById('deadline-section');
+    const deadlineList = document.getElementById('deadline-list');
+    const deadlineCount = document.getElementById('deadline-count');
+    if(deadlineItems.length){
+      deadlineSec.style.display='block';
+      deadlineCount.textContent = deadlineItems.length;
+      let dlHtml='';
+      deadlineItems.forEach(p=>{
+        const shootTs = new Date(p.shoot_date).getTime();
+        const diffDays = Math.floor((now - shootTs)/86400000);
+        dlHtml+=`<div class="deadline-item">
+          <span class="deadline-days">+${diffDays} hari</span>
+          <div style="flex:1">
+            <div class="deadline-name">${p.name}</div>
+            <div class="deadline-info">Shoot: ${fmtDate(p.shoot_date)} · Tahap: ${STAGES[p.status]||'—'} · ${p.session_type||''}</div>
+          </div>
+          ${p.file_link?`<a href="${p.file_link}" target="_blank" class="btn btn-sm btn-danger" style="font-size:11px;padding:4px 10px">File Edit ↗</a>`:''}
+        </div>`;
+      });
+      deadlineList.innerHTML=dlHtml;
+    } else {
+      deadlineSec.style.display='none';
+      deadlineList.innerHTML='';
+    }
+
     let progHtml='';
     if(!active.length) progHtml='<div class="empty">Tidak ada project aktif</div>';
     active.forEach(p=>{
@@ -590,7 +642,7 @@ function setSyncStatus(loading){
 
 // ─── BOOKING ─────────────────────────────────────────────────────────────────
 function clearForm(){
-  ['f-name','f-phone','f-bdate','f-sdate','f-link','f-notes'].forEach(id=>document.getElementById(id).value='');
+  ['f-name','f-phone','f-bdate','f-sdate','f-notes'].forEach(id=>document.getElementById(id).value='');
   document.getElementById('f-type').selectedIndex=0;
   document.getElementById('f-pkg').selectedIndex=0;
 }
@@ -608,7 +660,6 @@ async function submitBooking(){
       session_type:document.getElementById('f-type').value,
       package:document.getElementById('f-pkg').value,
       status: 0,
-      file_link:document.getElementById('f-link').value,
       notes:document.getElementById('f-notes').value,
       last_updated:new Date().toISOString()
     };
@@ -654,7 +705,9 @@ async function loadProjects(){
           <select onchange="updateStatus('${p.id}',this.value)" style="width:auto;font-size:12px;padding:5px 8px">
             ${STAGES.map((s,i)=>`<option value="${i}"${i===p.status?' selected':''}>${s}</option>`).join('')}
           </select>
-          ${p.file_link?`<a href="${p.file_link}" target="_blank" class="btn btn-sm">Buka File Edit ↗</a>`:''}
+          ${p.file_link_preset?`<a href="${p.file_link_preset}" target="_blank" class="btn btn-sm" style="color:var(--gold);border-color:rgba(245,200,66,.3)">📁 File Preset ↗</a>`:''}
+          ${p.file_link?`<a href="${p.file_link}" target="_blank" class="btn btn-sm">✏ File Edit ↗</a>`:''}
+          ${p.file_numbers?`<span class="badge b-purple" title="No. File Dipilih" style="font-size:11px;cursor:default">🔢 ${p.file_numbers}</span>`:''}
           <div style="margin-left:auto;display:flex;gap:6px">
             <button class="btn btn-sm" onclick="toggleEditPanel('${p.id}')" style="color:var(--accent2);border-color:rgba(124,106,247,.3)">✎ Edit Info</button>
             ${p.status<STAGES.length-1?`<button class="btn btn-sm btn-neon" onclick="nextStage('${p.id}',${p.status})">Lanjutkan →</button>`:''}
@@ -681,8 +734,16 @@ async function loadProjects(){
               <input type="date" id="ep-sdate-${p.id}" value="${p.shoot_date||''}" style="font-size:12px;padding:6px 10px">
             </div>
             <div>
+              <div style="font-size:11px;color:var(--text3);margin-bottom:4px;text-transform:uppercase;letter-spacing:.5px">Link File Preset</div>
+              <input type="url" id="ep-link-preset-${p.id}" value="${p.file_link_preset||''}" placeholder="https://drive.google.com/..." style="font-size:12px;padding:6px 10px">
+            </div>
+            <div>
               <div style="font-size:11px;color:var(--text3);margin-bottom:4px;text-transform:uppercase;letter-spacing:.5px">Link File Edit</div>
               <input type="url" id="ep-link-${p.id}" value="${p.file_link||''}" placeholder="https://drive.google.com/..." style="font-size:12px;padding:6px 10px">
+            </div>
+            <div style="grid-column:1/-1">
+              <div style="font-size:11px;color:var(--text3);margin-bottom:4px;text-transform:uppercase;letter-spacing:.5px">Nomor Pilihan File yang Diedit</div>
+              <input type="text" id="ep-filenums-${p.id}" value="${p.file_numbers||''}" placeholder="Contoh: 1, 5, 12, 23, 40 ..." style="font-size:12px;padding:6px 10px">
             </div>
           </div>
           <div style="margin-bottom:.75rem">
@@ -721,10 +782,12 @@ async function saveEditPanel(id){
   const session_type=document.getElementById('ep-type-'+id).value;
   const pkg=document.getElementById('ep-pkg-'+id).value;
   const shoot_date=document.getElementById('ep-sdate-'+id).value||null;
+  const file_link_preset=document.getElementById('ep-link-preset-'+id).value;
   const file_link=document.getElementById('ep-link-'+id).value;
+  const file_numbers=document.getElementById('ep-filenums-'+id).value;
   const notes=document.getElementById('ep-notes-'+id).value;
   try{
-    await dbPatch('bookings','id=eq.'+id,{session_type,package:pkg,shoot_date,file_link,notes,last_updated:new Date().toISOString()});
+    await dbPatch('bookings','id=eq.'+id,{session_type,package:pkg,shoot_date,file_link_preset,file_link,file_numbers,notes,last_updated:new Date().toISOString()});
     await addLog('Info diperbarui: tipe sesi → '+session_type+', paket → '+pkg+' (ID '+id.slice(0,8)+')');
     toast('Perubahan berhasil disimpan!','success');
     loadProjects();
