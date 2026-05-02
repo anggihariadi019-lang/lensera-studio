@@ -1188,7 +1188,8 @@ function initImportWaDropdowns(){
 }
 
 function parseWaGet(text, pattern){
-  const m = text.match(new RegExp(pattern+'\\s*:\\s*(.+)', 'i'));
+  // [^\\r\\n]+ — stop di newline, jangan sampai nyamber ke baris berikutnya
+  const m = text.match(new RegExp(pattern+'\\s*:\\s*([^\\r\\n]+)', 'i'));
   return m ? m[1].trim() : null;
 }
 
@@ -1212,6 +1213,7 @@ function parseWaTime(str){
 
 // ─── FIX UTAMA: normalizeTime di findNextAvailableSlot ───────────────────────
 // Cari jam kosong pertama di tanggal tertentu, rentang 08:00–17:00
+// Return: string jam jika ada slot kosong, null jika penuh, 'ERROR' jika gagal fetch
 async function findNextAvailableSlot(date){
   if(!date) return null;
   try{
@@ -1220,20 +1222,25 @@ async function findNextAvailableSlot(date){
       db('slots',{filter:`&slot_date=eq.${date}`,select:'slot_time'})
     ]);
     // ★ FIX: Supabase kolom bertipe `time` mengembalikan "09:00:00" (ada detiknya),
-    //        bukan "09:00". Tanpa normalizeTime(), "09:00:00" !== "09:00" → tidak
-    //        pernah match → semua slot selalu dianggap kosong lalu looping sampai
-    //        tidak ada yang ketemu → hasil: "semua slot penuh" padahal kosong semua.
+    //        bukan "09:00". Tanpa normalizeTime(), string tidak pernah match → semua
+    //        slot dianggap kosong → loop tidak menemukan jam yang taken → return jam
+    //        pertama. TAPI jika slots table punya data "09:00" (text column) yang
+    //        persis cocok, maka jam itu ditandai taken dengan benar.
     const takenTimes = new Set([
       ...bookings.map(b => normalizeTime(b.shoot_time)).filter(Boolean),
       ...slots.map(s => normalizeTime(s.slot_time)).filter(Boolean)
     ]);
+    console.log('[Slot check] tanggal='+date+' taken=', [...takenTimes]);
     // Slot per jam: 08:00 sampai 17:00
     for(let h=8; h<=17; h++){
       const t = String(h).padStart(2,'0')+':00';
       if(!takenTimes.has(t)) return t;
     }
-    return null; // semua jam penuh
-  }catch(e){ return null; }
+    return null; // benar-benar penuh
+  }catch(e){
+    console.error('[Slot check] error:', e);
+    return 'ERROR'; // beda dengan null agar bisa beda pesan
+  }
 }
 
 async function parseWaText(){
