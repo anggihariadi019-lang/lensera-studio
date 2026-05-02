@@ -1167,14 +1167,26 @@ async function loadSlots(){
       db('slots',{filter:`&slot_date=eq.${d}`,order:'slot_time.asc'})
     ]);
 
+    // Buat map slot berdasarkan client_name (lowercase) untuk matching dengan bookings
+    const slotByName = {};
+    slots.forEach(s=>{
+      const key = (s.client_name||'').toLowerCase().trim();
+      if(key && !slotByName[key]) slotByName[key] = s;
+    });
+    // Tandai slot mana yang sudah di-link ke booking (supaya tidak muncul dobel di slot manual)
+    const usedSlotIds = new Set();
+
     let bookingHtml='';
     if(bookings.length){
       bookingHtml=`<div style="margin-bottom:.875rem">
         <div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:.5rem;display:flex;align-items:center;gap:6px"><span style="width:6px;height:6px;border-radius:50%;background:var(--neon);display:inline-block"></span>Dari Data Booking</div>`;
       bookings.forEach(b=>{
-        const displayTime = null;  // jam di slots table, bukan bookings
-        const timeDisplay = '—';
+        // Cari jam dari slots table berdasarkan nama client
+        const matchedSlot = slotByName[(b.name||'').toLowerCase().trim()];
+        const displayTime = matchedSlot ? normalizeTime(matchedSlot.slot_time) : null;
+        const timeDisplay = displayTime || '—';
         const hasTime = !!displayTime;
+        if(matchedSlot) usedSlotIds.add(matchedSlot.id);
         bookingHtml+=`<div class="sched-booking-item" id="sbi-${b.id}">
           <span class="sched-time" style="${hasTime?'':'color:var(--text3);font-style:italic'}">${timeDisplay}</span>
           <div style="flex:1"><div style="font-size:13px;color:var(--text);font-weight:500">${b.name}</div>
@@ -1196,11 +1208,13 @@ async function loadSlots(){
       bookingHtml+='</div>';
     }
 
+    // Slot manual: hanya tampilkan slot yang TIDAK sudah dipakai oleh booking dari atas
+    const manualSlots = slots.filter(s=>!usedSlotIds.has(s.id));
     let slotHtml='';
-    if(slots.length){
+    if(manualSlots.length){
       slotHtml=`<div style="margin-bottom:.5rem">
         <div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:.5rem;display:flex;align-items:center;gap:6px"><span style="width:6px;height:6px;border-radius:50%;background:var(--accent2);display:inline-block"></span>Slot Manual</div>`;
-      slots.forEach(s=>{
+      manualSlots.forEach(s=>{
         const displayTime = normalizeTime(s.slot_time) || '—';
         slotHtml+=`<div class="sched-manual-item">
           <span class="sched-time manual">${displayTime}</span>
@@ -1211,7 +1225,7 @@ async function loadSlots(){
       slotHtml+='</div>';
     }
 
-    if(!bookings.length && !slots.length){
+    if(!bookings.length && !manualSlots.length){
       document.getElementById('slot-grid').innerHTML='<div class="empty" style="padding:1.5rem">Belum ada jadwal untuk tanggal ini.<br><span style="font-size:11px">Tambahkan slot manual di atas.</span></div>';
     } else {
       document.getElementById('slot-grid').innerHTML = bookingHtml + slotHtml;
@@ -1256,9 +1270,19 @@ async function loadConfirmedSlots(){
       document.getElementById('confirmed-list').innerHTML='<div class="empty">Belum ada jadwal untuk tanggal ini</div>';
       return;
     }
+    // Buat map slot berdasarkan client_name untuk join ke bookings
+    const slotByNameR = {};
+    slots.forEach(s=>{
+      const key = (s.client_name||'').toLowerCase().trim();
+      if(key && !slotByNameR[key]) slotByNameR[key] = s;
+    });
+    const usedSlotIdsR = new Set();
+
     let html='';
     bookings.forEach(b=>{
-      const displayTime = '—';  // jam di slots table
+      const matchedSlot = slotByNameR[(b.name||'').toLowerCase().trim()];
+      const displayTime = matchedSlot ? (normalizeTime(matchedSlot.slot_time)||'—') : '—';
+      if(matchedSlot) usedSlotIdsR.add(matchedSlot.id);
       html+=`<div style="display:flex;justify-content:space-between;align-items:center;padding:9px 0;border-bottom:1px solid var(--border)">
         <span style="font-family:var(--font-head);font-size:12px;font-weight:600;color:var(--neon);min-width:50px">${displayTime}</span>
         <div style="flex:1;margin:0 10px">
@@ -1268,7 +1292,8 @@ async function loadConfirmedSlots(){
         <span class="badge b-neon" style="font-size:10px">Booking</span>
       </div>`;
     });
-    slots.forEach(s=>{
+    // Slot manual: hanya yang tidak dipakai booking
+    slots.filter(s=>!usedSlotIdsR.has(s.id)).forEach(s=>{
       const displayTime = normalizeTime(s.slot_time) || '—';
       html+=`<div style="display:flex;justify-content:space-between;align-items:center;padding:9px 0;border-bottom:1px solid var(--border)">
         <span style="font-family:var(--font-head);font-size:12px;font-weight:600;color:var(--accent2);min-width:50px">${displayTime}</span>
@@ -1617,7 +1642,14 @@ async function saveJamBooking(id){
   const nameEl = document.querySelector('#sbi-'+id+' [style*="font-weight:500"]');
   const clientName = nameEl ? nameEl.textContent.trim() : '';
   try{
-    await dbPost('slots',{slot_date:d,slot_time:time,client_name:clientName});
+    // Cek apakah sudah ada slot untuk client ini di tanggal ini
+    const existing = await db('slots',{filter:`&slot_date=eq.${d}&client_name=eq.${encodeURIComponent(clientName)}`,select:'id'});
+    if(existing && existing.length){
+      // Update slot yang sudah ada, jangan buat baru (hindari duplikasi)
+      await dbPatch('slots','id=eq.'+existing[0].id,{slot_time:time});
+    } else {
+      await dbPost('slots',{slot_date:d,slot_time:time,client_name:clientName});
+    }
     toast('✓ Jam shoot diset: '+time,'success');
     document.getElementById('setjam-'+id).style.display='none';
     loadSlots();
