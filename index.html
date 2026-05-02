@@ -532,8 +532,11 @@ const NAV_HIDDEN = {
   editor: [1,2,6],    // sembunyikan booking baru, import wa, settings
 };
 
-const OWNER_NAME = 'adi';   // nama login owner
-const OWNER_PIN  = '2003';    // PIN default owner — ubah di sini
+// Daftar akun owner (bisa lebih dari satu)
+const OWNERS = [
+  {name:'adi', pin:'2003',  displayName:'Owner'},
+  {name:'galih', pin:'1234',  displayName:'Galih'},
+];
 
 function getStaffList(){
   try{ return JSON.parse(localStorage.getItem('lensera_staff')||'[]'); }catch(e){ return []; }
@@ -566,9 +569,10 @@ function doLogin(){
   if(!name || !pin){ errEl.textContent='Nama dan PIN harus diisi.'; errEl.style.display='block'; return; }
 
   // Cek owner
-  if(name === OWNER_NAME.toLowerCase() && pin === OWNER_PIN){
-    saveSession('Owner', 'owner');
-    startApp('Owner', 'owner');
+  const ownerMatch = OWNERS.find(o => o.name.toLowerCase() === name && o.pin === pin);
+  if(ownerMatch){
+    saveSession(ownerMatch.displayName, 'owner');
+    startApp(ownerMatch.displayName, 'owner');
     initAppData();
     return;
   }
