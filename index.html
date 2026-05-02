@@ -185,7 +185,34 @@
 
 <div id="toast"></div>
 
-<div class="layout">
+
+<!-- ═══════════════════════════════════════════════════════════════════════════
+     LOGIN SCREEN
+═══════════════════════════════════════════════════════════════════════════ -->
+<div id="login-screen" style="display:none;position:fixed;inset:0;background:var(--bg);z-index:9000;display:flex;align-items:center;justify-content:center">
+  <div style="width:100%;max-width:380px;padding:1.5rem">
+    <div style="text-align:center;margin-bottom:2rem">
+      <div style="font-family:var(--font-head);font-size:28px;font-weight:700;color:var(--text);letter-spacing:-1px">Lens<span style="color:var(--accent2)">Era</span></div>
+      <div style="font-size:11px;color:var(--text3);letter-spacing:2px;text-transform:uppercase;margin-top:4px">Studio System</div>
+    </div>
+    <div style="background:var(--card);border:1px solid var(--border);border-radius:var(--r2);padding:1.75rem">
+      <div style="font-family:var(--font-head);font-size:15px;font-weight:600;color:var(--text);margin-bottom:1.25rem">Masuk ke Sistem</div>
+      <div id="login-error" style="display:none;background:rgba(240,90,90,.08);border:1px solid rgba(240,90,90,.2);border-radius:var(--r);padding:.65rem .875rem;font-size:12px;color:var(--danger);margin-bottom:1rem"></div>
+      <div class="form-group">
+        <label class="form-label">Nama</label>
+        <input type="text" id="login-name" placeholder="Masukkan nama kamu..." autocomplete="off" onkeydown="if(event.key==='Enter')document.getElementById('login-pin').focus()">
+      </div>
+      <div class="form-group">
+        <label class="form-label">PIN</label>
+        <input type="password" id="login-pin" placeholder="••••••" maxlength="8" autocomplete="off" onkeydown="if(event.key==='Enter')doLogin()">
+      </div>
+      <button class="btn btn-primary" style="width:100%;justify-content:center;margin-top:.5rem" onclick="doLogin()">Masuk →</button>
+    </div>
+    <div style="text-align:center;margin-top:1rem;font-size:11px;color:var(--text3)">LensEra Studio · v2.0</div>
+  </div>
+</div>
+
+<div class="layout" id="app-layout" style="display:none">
   <aside class="sidebar">
     <div class="logo">
       <div class="logo-mark">Lens<span>Era</span></div>
@@ -201,6 +228,14 @@
       <div class="nav-item" onclick="goPage('settings',this)"><span class="nav-icon">⚙</span> Pengaturan</div>
     </nav>
     <div class="sidebar-footer">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:.75rem;padding:.5rem .25rem;background:var(--bg3);border-radius:var(--r);border:1px solid var(--border)">
+        <div id="sb-user-avatar" style="width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,var(--accent),var(--neon));display:flex;align-items:center;justify-content:center;font-family:var(--font-head);font-size:11px;font-weight:700;color:#fff;flex-shrink:0">?</div>
+        <div style="flex:1;min-width:0">
+          <div id="sb-user-name" style="font-size:12px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">—</div>
+          <div id="sb-user-role" style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.5px">—</div>
+        </div>
+        <button onclick="doLogout()" title="Logout" style="background:none;border:none;cursor:pointer;color:var(--text3);font-size:14px;padding:2px 4px;border-radius:4px;transition:color .2s" onmouseover="this.style.color='var(--danger)'" onmouseout="this.style.color='var(--text3)'">⏻</button>
+      </div>
       <div class="sync-status"><span class="sync-dot" id="sync-dot"></span><span id="sync-text">Tersambung</span></div>
       <div style="font-size:10px;color:var(--text3);margin-top:4px" id="last-sync">—</div>
     </div>
@@ -424,6 +459,30 @@ Jumlah DP/LUNAS : dp 100.000"></textarea>
         </div>
       </div>
 
+      <!-- MANAJEMEN PEGAWAI - owner only -->
+      <div class="card" id="staff-management-card" style="margin-top:1rem;display:none">
+        <div class="sec-head">
+          <div class="sec-title">👥 Manajemen Pegawai</div>
+          <span class="badge b-gold" id="staff-count">0 pegawai</span>
+        </div>
+        <div style="font-size:12px;color:var(--text3);margin-bottom:.875rem">Tambah dan kelola akses pegawai. Role: <strong style="color:var(--accent2)">admin</strong> bisa tambah/edit booking · <strong style="color:var(--neon)">editor</strong> hanya update workflow.</div>
+        <div id="staff-list" style="margin-bottom:1rem"></div>
+        <div style="border-top:1px solid var(--border);padding-top:.875rem">
+          <div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:.75rem">Tambah Pegawai Baru</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr auto auto;gap:.5rem;align-items:end">
+            <div><div style="font-size:11px;color:var(--text3);margin-bottom:4px">Nama</div><input type="text" id="new-staff-name" placeholder="Nama pegawai..."></div>
+            <div><div style="font-size:11px;color:var(--text3);margin-bottom:4px">PIN (4–8 digit)</div><input type="password" id="new-staff-pin" placeholder="••••" maxlength="8"></div>
+            <div><div style="font-size:11px;color:var(--text3);margin-bottom:4px">Role</div>
+              <select id="new-staff-role" style="padding:9px 10px">
+                <option value="admin">Admin</option>
+                <option value="editor">Editor</option>
+              </select>
+            </div>
+            <button class="btn btn-sm btn-primary" onclick="addStaff()" style="white-space:nowrap;align-self:end;padding:9px 14px">+ Tambah</button>
+          </div>
+        </div>
+      </div>
+
       <div class="card" style="margin-top:1rem">
         <div class="sec-head">
           <div class="sec-title">🔄 Tahap Workflow</div>
@@ -456,7 +515,180 @@ Jumlah DP/LUNAS : dp 100.000"></textarea>
 </div>
 
 <script>
-// ─── CONFIG ──────────────────────────────────────────────────────────────────
+// ─── CONFIG ─────────────────────────────────────────────────────────────────
+
+// ─── AUTH SYSTEM ──────────────────────────────────────────────────────────────
+// Role permissions
+const ROLE_PERMS = {
+  owner: ['dashboard','booking','importwa','projects','schedule','logs','settings'],
+  admin: ['dashboard','booking','importwa','projects','schedule','logs'],
+  editor:['dashboard','projects','schedule','logs'],
+};
+
+// Nav items yang disembunyikan per role (index dari querySelectorAll('.nav-item'))
+// 0=dashboard,1=booking,2=importwa,3=projects,4=schedule,5=logs,6=settings
+const NAV_HIDDEN = {
+  admin:  [6],        // sembunyikan settings
+  editor: [1,2,6],    // sembunyikan booking baru, import wa, settings
+};
+
+const OWNER_NAME = 'owner';   // nama login owner
+const OWNER_PIN  = '1234';    // PIN default owner — ubah di sini
+
+function getStaffList(){
+  try{ return JSON.parse(localStorage.getItem('lensera_staff')||'[]'); }catch(e){ return []; }
+}
+function saveStaffList(list){ localStorage.setItem('lensera_staff',JSON.stringify(list)); }
+
+function getSession(){
+  try{
+    const s = JSON.parse(localStorage.getItem('lensera_session')||'null');
+    if(!s) return null;
+    // Auto logout setelah 24 jam
+    if(Date.now() - s.loginAt > 24*60*60*1000){
+      localStorage.removeItem('lensera_session');
+      return null;
+    }
+    return s;
+  }catch(e){ return null; }
+}
+function saveSession(name, role){
+  localStorage.setItem('lensera_session', JSON.stringify({name, role, loginAt: Date.now()}));
+}
+function clearSession(){ localStorage.removeItem('lensera_session'); }
+
+function doLogin(){
+  const name = document.getElementById('login-name').value.trim().toLowerCase();
+  const pin  = document.getElementById('login-pin').value;
+  const errEl = document.getElementById('login-error');
+  errEl.style.display='none';
+
+  if(!name || !pin){ errEl.textContent='Nama dan PIN harus diisi.'; errEl.style.display='block'; return; }
+
+  // Cek owner
+  if(name === OWNER_NAME.toLowerCase() && pin === OWNER_PIN){
+    saveSession('Owner', 'owner');
+    startApp('Owner', 'owner');
+    return;
+  }
+
+  // Cek staff
+  const staff = getStaffList();
+  const found = staff.find(s => s.name.toLowerCase() === name && s.pin === pin);
+  if(found){
+    saveSession(found.name, found.role);
+    startApp(found.name, found.role);
+    return;
+  }
+
+  errEl.textContent='Nama atau PIN salah. Coba lagi.';
+  errEl.style.display='block';
+  document.getElementById('login-pin').value='';
+  document.getElementById('login-pin').focus();
+}
+
+function startApp(name, role){
+  document.getElementById('login-screen').style.display='none';
+  document.getElementById('app-layout').style.display='flex';
+
+  // Update sidebar user info
+  document.getElementById('sb-user-name').textContent = name;
+  document.getElementById('sb-user-role').textContent = role.toUpperCase();
+  document.getElementById('sb-user-avatar').textContent = name.slice(0,2).toUpperCase();
+
+  // Sembunyikan nav items yang tidak boleh diakses
+  const navItems = document.querySelectorAll('.nav-item');
+  const hidden = NAV_HIDDEN[role] || [];
+  navItems.forEach((el, i) => {
+    el.style.display = hidden.includes(i) ? 'none' : '';
+  });
+
+  // Tampilkan staff management card hanya untuk owner
+  const staffCard = document.getElementById('staff-management-card');
+  if(staffCard) staffCard.style.display = role === 'owner' ? 'block' : 'none';
+
+  // Sembunyikan tombol aksi untuk editor (hapus, tambah booking, import)
+  applyRoleUI(role);
+}
+
+function applyRoleUI(role){
+  // Tandai role di body untuk CSS targeting jika perlu
+  document.body.dataset.role = role;
+
+  // Init app
+  document.getElementById('f-bdate').value=today();
+  refreshSesiDropdowns();
+  refreshPaketDropdowns();
+  refreshStagesDropdowns();
+  loadDashboard();
+}
+
+function doLogout(){
+  clearSession();
+  document.getElementById('app-layout').style.display='none';
+  document.getElementById('login-screen').style.display='flex';
+  document.getElementById('login-name').value='';
+  document.getElementById('login-pin').value='';
+  document.getElementById('login-error').style.display='none';
+}
+
+// ─── STAFF MANAGEMENT ────────────────────────────────────────────────────────
+function renderStaffList(){
+  const list = getStaffList();
+  document.getElementById('staff-count').textContent = list.length + ' pegawai';
+  const el = document.getElementById('staff-list');
+  if(!list.length){ el.innerHTML='<div class="empty" style="padding:1rem">Belum ada pegawai. Tambahkan di bawah.</div>'; return; }
+  el.innerHTML = list.map((s,i)=>`
+    <div style="display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--border)">
+      <div style="width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,var(--accent),var(--neon));display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#fff;flex-shrink:0">${s.name.slice(0,2).toUpperCase()}</div>
+      <div style="flex:1">
+        <div style="font-size:13px;font-weight:500;color:var(--text)">${s.name}</div>
+        <div style="font-size:11px;color:var(--text3)">Role: <span style="color:${s.role==='admin'?'var(--accent2)':'var(--neon)'}">${s.role}</span></div>
+      </div>
+      <button class="btn btn-sm" style="font-size:11px;padding:3px 9px;color:var(--warn);border-color:rgba(240,161,74,.3)" onclick="resetStaffPin(${i})">Reset PIN</button>
+      <button class="btn btn-sm btn-danger" style="font-size:11px;padding:3px 9px" onclick="deleteStaff(${i})">Hapus</button>
+    </div>`).join('');
+}
+
+function addStaff(){
+  const name = document.getElementById('new-staff-name').value.trim();
+  const pin  = document.getElementById('new-staff-pin').value.trim();
+  const role = document.getElementById('new-staff-role').value;
+  if(!name){ toast('Isi nama pegawai!','error'); return; }
+  if(!pin || pin.length < 4){ toast('PIN minimal 4 digit!','error'); return; }
+  if(!/^\d+$/.test(pin)){ toast('PIN hanya angka!','error'); return; }
+  if(name.toLowerCase() === 'owner'){ toast('Nama "owner" tidak boleh digunakan!','error'); return; }
+  const list = getStaffList();
+  if(list.find(s=>s.name.toLowerCase()===name.toLowerCase())){ toast('Nama sudah terdaftar!','error'); return; }
+  list.push({name, pin, role});
+  saveStaffList(list);
+  document.getElementById('new-staff-name').value='';
+  document.getElementById('new-staff-pin').value='';
+  toast('Pegawai '+name+' ('+role+') berhasil ditambahkan!','success');
+  renderStaffList();
+}
+
+function deleteStaff(i){
+  const list = getStaffList();
+  showModal('Hapus Pegawai','Hapus akses "'+list[i].name+'"? Mereka tidak bisa login lagi.',()=>{
+    list.splice(i,1);
+    saveStaffList(list);
+    toast('Pegawai dihapus','info');
+    renderStaffList();
+  });
+}
+
+function resetStaffPin(i){
+  const list = getStaffList();
+  const newPin = prompt('PIN baru untuk '+list[i].name+' (4-8 angka):');
+  if(!newPin) return;
+  if(newPin.length < 4 || !/^\d+$/.test(newPin)){ toast('PIN tidak valid!','error'); return; }
+  list[i].pin = newPin;
+  saveStaffList(list);
+  toast('PIN '+list[i].name+' berhasil direset!','success');
+}
+
+─
 const SB_URL = 'https://wlfvrlnuvyplfdlyxqif.supabase.co';
 const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndsZnZybG51dnlwbGZkbHl4cWlmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc1NzY1NTEsImV4cCI6MjA5MzE1MjU1MX0.NkzVd8JJIEUVzLmBN_9rKWld49480K4e4NkLdfVQ134';
 const DEFAULT_STAGES = ['Booking Tanggal','Edit Preset','Konfirmasi Pilih Foto','File Siap Edit','Proses Editing','Proses Siap Cetak','Pengiriman Cetak ke Client','Done'];
@@ -527,7 +759,7 @@ function goPage(id, el){
     if(!d){ document.getElementById('slot-date').value = today(); }
     loadSlots();
   }
-  if(id==='settings'){ renderSesiList(); renderPaketList(); renderStagesList(); }
+  if(id==='settings'){ renderSesiList(); renderPaketList(); renderStagesList(); renderStaffList(); }
   if(id==='importwa'){ initImportWaDropdowns(); }
 }
 
@@ -1404,11 +1636,18 @@ if(localStorage.getItem('lensera_data_version') !== DATA_VERSION){
   localStorage.removeItem('lensera_stages');
   localStorage.setItem('lensera_data_version', DATA_VERSION);
 }
-document.getElementById('f-bdate').value=today();
-refreshSesiDropdowns();
-refreshPaketDropdowns();
-refreshStagesDropdowns();
-loadDashboard();
+
+// Cek session — tampilkan login atau langsung masuk
+(function(){
+  const s = getSession();
+  if(s){
+    startApp(s.name, s.role);
+  } else {
+    // Tampilkan login screen, sembunyikan app
+    document.getElementById('login-screen').style.display='flex';
+    document.getElementById('app-layout').style.display='none';
+  }
+})();
 
 setInterval(()=>{
   const active=document.querySelector('.page.active').id;
