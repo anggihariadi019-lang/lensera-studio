@@ -1205,21 +1205,44 @@ function parseWaDate(str){
 
 function parseWaTime(str){
   if(!str) return null;
-  // terima format "09:00", "9:00", "09.00", "9.00 WIB", dll
   const m=str.match(/(\d{1,2})[:.]\s*(\d{2})/);
   if(!m) return null;
   return m[1].padStart(2,'0')+':'+m[2];
 }
 
-function parseWaText(){
+// Cari jam kosong pertama di tanggal tertentu, rentang 08:00–17:00
+async function findNextAvailableSlot(date){
+  if(!date) return null;
+  try{
+    const [bookings, slots] = await Promise.all([
+      db('bookings',{filter:`&shoot_date=eq.${date}`,select:'shoot_time'}),
+      db('slots',{filter:`&slot_date=eq.${date}`,select:'slot_time'})
+    ]);
+    const takenTimes = new Set([
+      ...bookings.map(b=>b.shoot_time).filter(Boolean),
+      ...slots.map(s=>s.slot_time).filter(Boolean)
+    ]);
+    // Slot per jam: 08:00 sampai 17:00
+    for(let h=8; h<=17; h++){
+      const t = String(h).padStart(2,'0')+':00';
+      if(!takenTimes.has(t)) return t;
+    }
+    return null; // semua jam penuh
+  }catch(e){ return null; }
+}
+
+async function parseWaText(){
   const raw=document.getElementById('iwa-raw').value.trim();
   if(!raw){toast('Paste teks WA dulu!','error');return;}
+
+  // Tombol parse: tampilkan loading sementara
+  const btn = document.querySelector('#iwa-step1 .btn-primary');
+  if(btn){ btn.textContent='⏳ Memproses...'; btn.disabled=true; }
 
   let working=raw;
   const formStart=raw.search(/Form\s*Booking/i);
   if(formStart!==-1) working=raw.slice(formStart);
 
-  // Potong di bagian info pembayaran/bank
   const stopPatterns=[/^Note\s*:/im,/^Payment\s+via/im,/^Booking\s+Quota/im,/^Bank\s/im,/^\d{10,}/m,/^[A-Z\s]{8,}$/m];
   let cutAt=working.length;
   stopPatterns.forEach(pat=>{ const m=working.search(pat); if(m!==-1&&m<cutAt)cutAt=m; });
@@ -1236,7 +1259,19 @@ function parseWaText(){
   const dp      = parseWaGet(working,'Jumlah\\s*DP\\s*\\/\\s*LUNAS');
 
   const shootDate = parseWaDate(tglFoto);
-  const shootTime = parseWaTime(jamFoto);
+  let shootTime   = parseWaTime(jamFoto);
+  let autoSlotMsg = null;
+
+  // Jika jam tidak ada di teks WA tapi tanggal ada → cari slot kosong otomatis
+  if(!shootTime && shootDate){
+    const found = await findNextAvailableSlot(shootDate);
+    if(found){
+      shootTime  = found;
+      autoSlotMsg = '✓ Jam tidak tercantum di WA — otomatis dipilih slot kosong: <strong style="color:var(--neon)">'+found+'</strong>';
+    } else {
+      autoSlotMsg = '⚠ Jam tidak ada di WA & semua slot 08:00–17:00 sudah penuh di tanggal ini. Isi manual.';
+    }
+  }
 
   document.getElementById('iwa-name').value  = nama||'';
   document.getElementById('iwa-phone').value = noWa?noWa.replace(/[^0-9+]/g,''):'';
@@ -1273,6 +1308,7 @@ function parseWaText(){
   if(!tglFoto)  warns.push('⚠ Tanggal Foto tidak terbaca');
   if(!shootDate&&tglFoto) warns.push('⚠ Format tanggal tidak dikenali (contoh: 20 mei 2026)');
   if(!shootTime&&jamFoto) warns.push('⚠ Format jam tidak dikenali (contoh: 09:00)');
+  if(autoSlotMsg) warns.push(autoSlotMsg);
 
   const warnEl=document.getElementById('iwa-warnings');
   warnEl.style.display=warns.length?'block':'none';
@@ -1280,9 +1316,10 @@ function parseWaText(){
 
   const statusEl=document.getElementById('iwa-parse-status');
   if(!nama&&!noWa){ statusEl.className='badge b-danger'; statusEl.textContent='Gagal dibaca — cek format'; }
-  else if(warns.length){ statusEl.className='badge b-gold'; statusEl.textContent='Sebagian terbaca — cek manual'; }
+  else if(warns.filter(w=>w.startsWith('⚠')).length){ statusEl.className='badge b-gold'; statusEl.textContent='Sebagian terbaca — cek manual'; }
   else { statusEl.className='badge b-neon'; statusEl.textContent='✓ Semua terbaca'; }
 
+  if(btn){ btn.textContent='⚡ Parse Otomatis'; btn.disabled=false; }
   document.getElementById('iwa-step1').style.display='none';
   document.getElementById('iwa-step2').style.display='block';
 }
