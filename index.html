@@ -321,6 +321,7 @@ Jumlah DP/LUNAS : dp 100.000"></textarea>
           <div class="form-group"><label class="form-label">Paket</label><select id="iwa-pkg"></select></div>
           <div id="iwa-conflict-warn" style="display:none;background:rgba(240,161,74,.08);border:1px solid rgba(240,161,74,.25);border-radius:var(--r);padding:.65rem .875rem;margin-bottom:.875rem;font-size:12px;color:var(--warn)"></div>
           <div class="form-group"><label class="form-label">Catatan (Lokasi, Instagram, DP, dll)</label><textarea id="iwa-notes" rows="3"></textarea></div>
+          <div id="iwa-slot-info" style="display:none;background:rgba(57,224,155,.07);border:1px solid rgba(57,224,155,.2);border-radius:var(--r);padding:.75rem;margin-bottom:.875rem;font-size:12px;color:var(--neon)"></div>
           <div id="iwa-warnings" style="display:none;background:rgba(240,90,90,.07);border:1px solid rgba(240,90,90,.2);border-radius:var(--r);padding:.75rem;margin-bottom:.875rem;font-size:12px;color:var(--danger)"></div>
           <div style="display:flex;gap:.5rem;justify-content:flex-end;flex-wrap:wrap">
             <button class="btn btn-sm" onclick="document.getElementById('iwa-step2').style.display='none';document.getElementById('iwa-step1').style.display='block'">← Kembali</button>
@@ -462,7 +463,7 @@ Jumlah DP/LUNAS : dp 100.000"></textarea>
 // ─── CONFIG ──────────────────────────────────────────────────────────────────
 const SB_URL = 'https://wlfvrlnuvyplfdlyxqif.supabase.co';
 const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndsZnZybG51dnlwbGZkbHl4cWlmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc1NzY1NTEsImV4cCI6MjA5MzE1MjU1MX0.NkzVd8JJIEUVzLmBN_9rKWld49480K4e4NkLdfVQ134';
-const DEFAULT_STAGES = ['Edit Preset','Konfirmasi Pilih Foto','File Siap Edit','Proses Editing','Proses Siap Cetak','Pengiriman Cetak ke Client','Done'];
+const DEFAULT_STAGES = ['Booking Tanggal','Edit Preset','Konfirmasi Pilih Foto','File Siap Edit','Proses Editing','Proses Siap Cetak','Pengiriman Cetak ke Client','Done'];
 
 function getStages(){ try{ return JSON.parse(localStorage.getItem('lensera_stages')||'null')||DEFAULT_STAGES.slice(); }catch(e){ return DEFAULT_STAGES.slice(); } }
 function saveStages(list){ localStorage.setItem('lensera_stages',JSON.stringify(list)); }
@@ -1065,8 +1066,8 @@ async function loadLogs(){
 }
 
 // ─── SETTINGS: TIPE SESI ─────────────────────────────────────────────────────
-const DEFAULT_SESI = ['Prewedding','Portrait','Produk','Event','Family','Maternity','Lainnya'];
-const DEFAULT_PAKET = [{name:'Silver',dur:'2 Jam'},{name:'Gold',dur:'4 Jam'},{name:'Platinum',dur:'Full Day'}];
+const DEFAULT_SESI = ['Prewedding','Product','Event','Family','Birthday','Group','Wisuda'];
+const DEFAULT_PAKET = [{name:'Standar',dur:'1 Sesi Foto'},{name:'Silver',dur:'1 Jam'},{name:'Gold',dur:'2 Jam'},{name:'Platinum',dur:'3 Jam'},{name:'Open House',dur:'Open House'}];
 
 function getSesiList(){ try{ return JSON.parse(localStorage.getItem('lensera_sesi')||'null')||DEFAULT_SESI.slice(); }catch(e){ return DEFAULT_SESI.slice(); } }
 function saveSesiList(list){ localStorage.setItem('lensera_sesi',JSON.stringify(list)); }
@@ -1275,9 +1276,13 @@ async function parseWaText(){
 
   if(!shootTime && shootDate){
     const found = await findNextAvailableSlot(shootDate);
-    if(found){
+    if(found && found !== 'ERROR'){
       shootTime  = found;
       autoSlotMsg = '✓ Jam tidak tercantum di WA — otomatis dipilih slot kosong: <strong style="color:var(--neon)">'+found+'</strong>';
+    } else if(found === 'ERROR'){
+      // Gagal fetch (koneksi/tabel error) — cari jam 08:00 sebagai fallback default
+      shootTime  = '08:00';
+      autoSlotMsg = '⚠ Jam tidak ada di WA & gagal cek slot (koneksi). Jam default 08:00 dipilih — cek & sesuaikan manual.';
     } else {
       autoSlotMsg = '⚠ Jam tidak ada di WA & semua slot 08:00–17:00 sudah penuh di tanggal ini. Isi manual.';
     }
@@ -1315,11 +1320,20 @@ async function parseWaText(){
   if(!tglFoto)  warns.push('⚠ Tanggal Foto tidak terbaca');
   if(!shootDate&&tglFoto) warns.push('⚠ Format tanggal tidak dikenali (contoh: 20 mei 2026)');
   if(!shootTime&&jamFoto) warns.push('⚠ Format jam tidak dikenali (contoh: 09:00)');
-  if(autoSlotMsg) warns.push(autoSlotMsg);
+  if(autoSlotMsg && !autoSlotMsg.startsWith('✓')) warns.push(autoSlotMsg);
 
   const warnEl=document.getElementById('iwa-warnings');
   warnEl.style.display=warns.length?'block':'none';
   warnEl.innerHTML=warns.join('<br>');
+
+  // Tampilkan info slot sukses (hijau) terpisah
+  const slotInfoEl=document.getElementById('iwa-slot-info');
+  if(slotInfoEl){
+    if(autoSlotMsg && autoSlotMsg.startsWith('✓')){
+      slotInfoEl.style.display='block';
+      slotInfoEl.innerHTML=autoSlotMsg;
+    } else { slotInfoEl.style.display='none'; }
+  }
 
   const statusEl=document.getElementById('iwa-parse-status');
   if(!nama&&!noWa){ statusEl.className='badge b-danger'; statusEl.textContent='Gagal dibaca — cek format'; }
@@ -1366,6 +1380,14 @@ async function submitImportWa(){
 }
 
 // ─── INIT ─────────────────────────────────────────────────────────────────────
+// Reset default lists kalau versi berubah (hapus cache lama)
+const DATA_VERSION = 'v2';
+if(localStorage.getItem('lensera_data_version') !== DATA_VERSION){
+  localStorage.removeItem('lensera_sesi');
+  localStorage.removeItem('lensera_paket');
+  localStorage.removeItem('lensera_stages');
+  localStorage.setItem('lensera_data_version', DATA_VERSION);
+}
 document.getElementById('f-bdate').value=today();
 refreshSesiDropdowns();
 refreshPaketDropdowns();
