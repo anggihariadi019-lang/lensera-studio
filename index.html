@@ -741,7 +741,6 @@ async function submitBooking(){
       phone:document.getElementById('f-phone').value,
       book_date:document.getElementById('f-bdate').value||today(),
       shoot_date:sdate,
-      shoot_time:stime,
       session_type:document.getElementById('f-type').value,
       package:document.getElementById('f-pkg').value,
       status:0,
@@ -893,11 +892,8 @@ async function saveEditPanel(id){
   const file_numbers=document.getElementById('ep-filenums-'+id).value;
   const notes=document.getElementById('ep-notes-'+id).value;
   try{
-    await dbPatch('bookings','id=eq.'+id,{session_type,package:pkg,shoot_date,shoot_time,file_link_preset,file_link,file_numbers,notes,last_updated:new Date().toISOString()});
+    await dbPatch('bookings','id=eq.'+id,{session_type,package:pkg,shoot_date,file_link_preset,file_link,file_numbers,notes,last_updated:new Date().toISOString()});
     await addLog('Info diperbarui: '+session_type+' · '+pkg+(shoot_date?' · Shoot: '+fmtDate(shoot_date)+(shoot_time?' '+shoot_time:''):'')+' (ID '+id.slice(0,8)+')');
-    if(shoot_date && shoot_time){
-      try{ await dbPost('slots',{slot_date:shoot_date,slot_time:shoot_time,client_name:''}); }catch(e){}
-    }
     toast('Perubahan berhasil disimpan!','success');
     loadProjects();
   }catch(e){ toast('Gagal menyimpan: '+e.message,'error'); }
@@ -1342,7 +1338,6 @@ async function submitImportWa(){
       phone:       document.getElementById('iwa-phone').value,
       book_date:   document.getElementById('iwa-bdate').value||today(),
       shoot_date:  sdate,
-      shoot_time:  stime,
       session_type:document.getElementById('iwa-type').value,
       package:     document.getElementById('iwa-pkg').value,
       status:      0,
@@ -1385,14 +1380,19 @@ async function saveJamBooking(id){
   const t = inp.value;
   if(!t){ toast('Isi jam dulu!','error'); return; }
   const time = t.slice(0,5);
+  const d = document.getElementById('slot-date').value;
+  if(!d){ toast('Pilih tanggal dulu!','error'); return; }
+  // Ambil nama client dari row item
+  const nameEl = document.querySelector('#sbi-'+id+' [style*="font-weight:500"]');
+  const clientName = nameEl ? nameEl.textContent.trim() : '';
   try{
-    await dbPatch('bookings','id=eq.'+id,{shoot_time:time,last_updated:new Date().toISOString()});
+    await dbPost('slots',{slot_date:d,slot_time:time,client_name:clientName});
     toast('✓ Jam shoot diset: '+time,'success');
     document.getElementById('setjam-'+id).style.display='none';
-    // Refresh tampilan item tanpa reload penuh
-    const d = document.getElementById('slot-date').value;
-    if(d) loadSlots();
-  }catch(e){ toast('Gagal simpan jam: '+e.message,'error'); }
+    loadSlots();
+  }catch(e){
+    toast('Gagal simpan jam: '+e.message,'error');
+  }
 }
 
 // ─── INIT ─────────────────────────────────────────────────────────────────────
