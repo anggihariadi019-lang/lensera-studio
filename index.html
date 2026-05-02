@@ -189,7 +189,7 @@
 <!-- ═══════════════════════════════════════════════════════════════════════════
      LOGIN SCREEN
 ═══════════════════════════════════════════════════════════════════════════ -->
-<div id="login-screen" style="display:none;position:fixed;inset:0;background:var(--bg);z-index:9000;display:flex;align-items:center;justify-content:center">
+<div id="login-screen" style="position:fixed;inset:0;background:var(--bg);z-index:9000;display:flex;align-items:center;justify-content:center">
   <div style="width:100%;max-width:380px;padding:1.5rem">
     <div style="text-align:center;margin-bottom:2rem">
       <div style="font-family:var(--font-head);font-size:28px;font-weight:700;color:var(--text);letter-spacing:-1px">Lens<span style="color:var(--accent2)">Era</span></div>
@@ -590,39 +590,33 @@ function doLogin(){
 }
 
 function startApp(name, role){
+  // 1. Tampilkan app, sembunyikan login
   document.getElementById('login-screen').style.display='none';
   document.getElementById('app-layout').style.display='flex';
+  document.body.dataset.role = role;
 
-  // Update sidebar user info
+  // 2. Update sidebar
   document.getElementById('sb-user-name').textContent = name;
   document.getElementById('sb-user-role').textContent = role.toUpperCase();
   document.getElementById('sb-user-avatar').textContent = name.slice(0,2).toUpperCase();
 
-  // Sembunyikan nav items yang tidak boleh diakses
+  // 3. Nav visibility
   const navItems = document.querySelectorAll('.nav-item');
-  const hidden = NAV_HIDDEN[role] || [];
-  navItems.forEach((el, i) => {
-    el.style.display = hidden.includes(i) ? 'none' : '';
-  });
+  (NAV_HIDDEN[role]||[]).forEach(i=>{ if(navItems[i]) navItems[i].style.display='none'; });
 
-  // Tampilkan staff management card hanya untuk owner
+  // 4. Staff card (owner only)
   const staffCard = document.getElementById('staff-management-card');
-  if(staffCard) staffCard.style.display = role === 'owner' ? 'block' : 'none';
-
-  // Sembunyikan tombol aksi untuk editor (hapus, tambah booking, import)
-  applyRoleUI(role);
-}
-
-function applyRoleUI(role){
-  document.body.dataset.role = role;
+  if(staffCard) staffCard.style.display = role==='owner'?'block':'none';
 }
 
 function initAppData(){
-  try{ document.getElementById('f-bdate').value=today(); }catch(e){}
-  try{ refreshSesiDropdowns(); }catch(e){}
-  try{ refreshPaketDropdowns(); }catch(e){}
-  try{ refreshStagesDropdowns(); }catch(e){}
-  try{ loadDashboard(); }catch(e){}
+  // Dipanggil setelah semua fungsi didefinisikan
+  const bdateEl = document.getElementById('f-bdate');
+  if(bdateEl) bdateEl.value = today();
+  if(typeof refreshSesiDropdowns==='function') refreshSesiDropdowns();
+  if(typeof refreshPaketDropdowns==='function') refreshPaketDropdowns();
+  if(typeof refreshStagesDropdowns==='function') refreshStagesDropdowns();
+  if(typeof loadDashboard==='function') loadDashboard();
 }
 
 function doLogout(){
@@ -1640,7 +1634,8 @@ if(localStorage.getItem('lensera_data_version') !== DATA_VERSION){
 }
 
 // Cek session — tampilkan login atau langsung masuk
-document.addEventListener('DOMContentLoaded', function(){
+// Auth init — jalankan setelah semua fungsi terdefinisi
+(function authInit(){
   const s = getSession();
   if(s){
     startApp(s.name, s.role);
@@ -1649,11 +1644,11 @@ document.addEventListener('DOMContentLoaded', function(){
     document.getElementById('login-screen').style.display='flex';
     document.getElementById('app-layout').style.display='none';
   }
-});
+})();
 
 setInterval(()=>{
-  const active=document.querySelector('.page.active').id;
-  if(active==='page-dashboard') loadDashboard();
+  const activeEl=document.querySelector('.page.active');
+  if(activeEl && activeEl.id==='page-dashboard') loadDashboard();
 },30000);
 </script>
 </body>
