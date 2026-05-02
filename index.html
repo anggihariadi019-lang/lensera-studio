@@ -150,7 +150,6 @@
   .deadline-name{flex:1;font-size:13px;font-weight:500;color:var(--text)}
   .deadline-info{font-size:11px;color:var(--text3)}
 
-  /* Jadwal: booking dari DB */
   .sched-booking-item{display:flex;align-items:center;gap:10px;padding:8px 12px;background:rgba(57,224,155,.06);border:1px solid rgba(57,224,155,.18);border-radius:var(--r);margin-bottom:5px}
   .sched-manual-item{display:flex;align-items:center;gap:10px;padding:8px 12px;background:var(--bg3);border:1px solid var(--border);border-radius:var(--r);margin-bottom:5px}
   .sched-time{font-family:var(--font-head);font-weight:600;font-size:12px;min-width:50px;color:var(--neon)}
@@ -224,7 +223,6 @@
         <div style="font-size:11px;color:var(--danger);opacity:.75;margin-bottom:.75rem">Project berikut sudah melewati batas 2 hari dari tanggal photoshoot dan belum selesai.</div>
         <div id="deadline-list"></div>
       </div>
-      <!-- Jadwal Hari Ini di Dashboard -->
       <div class="card gap" id="dash-today-sched" style="margin-bottom:1rem">
         <div class="sec-head" style="margin-bottom:.75rem">
           <div class="sec-title">📅 Jadwal Hari Ini</div>
@@ -358,8 +356,6 @@ Jumlah DP/LUNAS : dp 100.000"></textarea>
               <input type="date" id="slot-date" onchange="loadSlots()" style="font-size:14px">
             </div>
             <div id="slot-date-label" style="font-size:12px;color:var(--text3);margin-bottom:.75rem"></div>
-
-            <!-- Tambah slot manual -->
             <div style="background:var(--bg3);border:1px solid var(--border);border-radius:var(--r);padding:.875rem;margin-bottom:.875rem">
               <div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:.6rem">+ Tambah Slot Manual</div>
               <div class="form-row" style="margin-bottom:.5rem">
@@ -376,7 +372,6 @@ Jumlah DP/LUNAS : dp 100.000"></textarea>
                 <button class="btn btn-sm btn-neon" onclick="confirmSlot()">Konfirmasi Slot</button>
               </div>
             </div>
-
             <div id="slot-grid"><div class="empty">Pilih tanggal untuk melihat jadwal</div></div>
           </div>
         </div>
@@ -546,6 +541,17 @@ function fmtDate(d){ if(!d)return '—'; return new Date(d+'T00:00:00').toLocale
 function fmtDT(d){ if(!d)return '—'; return new Date(d).toLocaleString('id-ID',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'}); }
 function fmtDateLabel(d){ if(!d)return ''; return new Date(d+'T00:00:00').toLocaleDateString('id-ID',{weekday:'long',day:'numeric',month:'long',year:'numeric'}); }
 
+// ─── FIX: NORMALIZE TIME ─────────────────────────────────────────────────────
+// Supabase kolom bertipe `time` mengembalikan format "HH:MM:SS" (ada detiknya),
+// sedangkan kolom text/input HTML mengembalikan "HH:MM".
+// Fungsi ini normalisasi ke HH:MM agar perbandingan string selalu konsisten.
+function normalizeTime(t){
+  if(!t) return null;
+  const m = String(t).match(/^(\d{1,2}):(\d{2})/);
+  if(!m) return null;
+  return m[1].padStart(2,'0') + ':' + m[2];
+}
+
 // Delay = belum done AND lebih dari 2 hari dari shoot_date
 function isDelay(p){
   if(p.status >= STAGES.length-1) return false;
@@ -563,7 +569,6 @@ function stageBadge(s){
 }
 
 // ─── CONFLICT CHECKER ────────────────────────────────────────────────────────
-// Cek apakah tanggal+jam sudah ada di booking lain
 async function checkShootDateConflict(fieldId){
   const dateEl = document.getElementById(fieldId);
   const warnId = fieldId.startsWith('iwa') ? 'iwa-conflict-warn' : 'f-conflict-warn';
@@ -574,7 +579,8 @@ async function checkShootDateConflict(fieldId){
     const existing = await db('bookings',{filter:`&shoot_date=eq.${d}`,select:'name,shoot_time,status'});
     const active = existing.filter(p=>p.status < STAGES.length-1);
     if(active.length){
-      const names = active.map(p=>p.name+(p.shoot_time?' ('+p.shoot_time+')':'')).join(', ');
+      // Normalize shoot_time untuk tampilan
+      const names = active.map(p=>p.name+(p.shoot_time?' ('+normalizeTime(p.shoot_time)+')':'')).join(', ');
       warnEl.style.display='block';
       warnEl.innerHTML=`⚠ Tanggal ini sudah ada booking: <strong style="color:var(--warn)">${names}</strong>. Pastikan jadwal tidak bertabrakan.`;
     } else { warnEl.style.display='none'; }
@@ -601,7 +607,6 @@ async function loadDashboard(){
     document.getElementById('m-delay').textContent=delay;
     document.getElementById('nb-active').textContent=all.filter(p=>p.status<STAGES.length-1).length;
 
-    // Deadline check: lebih dari 2 hari dari shoot_date & belum done
     const now = Date.now();
     const deadlineItems = all.filter(p=>{
       if(p.status >= STAGES.length-1) return false;
@@ -617,11 +622,13 @@ async function loadDashboard(){
       deadlineCount.textContent = deadlineItems.length;
       deadlineList.innerHTML = deadlineItems.map(p=>{
         const diffDays = Math.floor((now - new Date(p.shoot_date+'T00:00:00').getTime())/86400000);
+        // Normalize shoot_time untuk tampilan
+        const displayTime = normalizeTime(p.shoot_time);
         return `<div class="deadline-item">
           <span class="deadline-days">+${diffDays}h</span>
           <div style="flex:1">
             <div class="deadline-name">${p.name}</div>
-            <div class="deadline-info">Shoot: ${fmtDate(p.shoot_date)}${p.shoot_time?' · '+p.shoot_time:''} · Tahap: ${STAGES[p.status]||'—'} · ${p.session_type||''}</div>
+            <div class="deadline-info">Shoot: ${fmtDate(p.shoot_date)}${displayTime?' · '+displayTime:''} · Tahap: ${STAGES[p.status]||'—'} · ${p.session_type||''}</div>
           </div>
           ${p.file_link?`<a href="${p.file_link}" target="_blank" class="btn btn-sm btn-danger" style="font-size:11px;padding:4px 10px">File Edit ↗</a>`:''}
         </div>`;
@@ -633,7 +640,6 @@ async function loadDashboard(){
 
     await loadDashTodaySchedule();
 
-    // Progress
     const active = all.filter(p=>p.status<STAGES.length);
     let progHtml = !active.length ? '<div class="empty">Tidak ada project aktif</div>' : '';
     active.forEach(p=>{
@@ -653,7 +659,6 @@ async function loadDashboard(){
     });
     document.getElementById('dash-progress').innerHTML=progHtml;
 
-    // Notifikasi
     const notifs=[];
     all.forEach(p=>{
       const editStage = STAGES[Math.floor((STAGES.length-1)*0.3)];
@@ -680,15 +685,15 @@ async function loadDashTodaySchedule(){
   const t = today();
   const listEl = document.getElementById('dash-today-sched-list');
   try{
-    // Ambil dari bookings (shoot_date = hari ini) + slots manual
     const [bookings, slots] = await Promise.all([
       db('bookings',{filter:`&shoot_date=eq.${t}`,order:'shoot_time.asc'}),
       db('slots',{filter:`&slot_date=eq.${t}`,order:'slot_time.asc'})
     ]);
 
     const items = [];
-    bookings.forEach(b=>{ items.push({time:b.shoot_time||'--:--',name:b.name,type:'booking',info:b.session_type||'',pkg:b.package||'',status:b.status}); });
-    slots.forEach(s=>{ items.push({time:s.slot_time||'--:--',name:s.client_name,type:'slot',info:'Slot Manual',pkg:''}); });
+    // Normalize shoot_time saat membaca dari bookings
+    bookings.forEach(b=>{ items.push({time:normalizeTime(b.shoot_time)||'--:--',name:b.name,type:'booking',info:b.session_type||'',pkg:b.package||'',status:b.status}); });
+    slots.forEach(s=>{ items.push({time:normalizeTime(s.slot_time)||'--:--',name:s.client_name,type:'slot',info:'Slot Manual',pkg:''}); });
     items.sort((a,b)=>a.time.localeCompare(b.time));
 
     if(!items.length){
@@ -749,14 +754,11 @@ async function submitBooking(){
     await dbPost('bookings',data);
     await addLog('Booking baru: '+name+' ('+data.session_type+')'+(sdate?' · Shoot: '+fmtDate(sdate)+(stime?' '+stime:''):''));
     toast('Booking '+name+' berhasil disimpan!','success');
-    // Jika ada shoot_date & shoot_time, auto-konfirmasi slot
     if(sdate && stime){
       try{
         await dbPost('slots',{slot_date:sdate,slot_time:stime,client_name:name});
         toast('Slot jadwal '+stime+' tgl '+fmtDate(sdate)+' otomatis ditambahkan','info');
-      }catch(slotErr){
-        // slot mungkin sudah ada (duplicate), bukan error fatal
-      }
+      }catch(slotErr){}
     }
     clearForm();
     goPage('projects',document.querySelectorAll('.nav-item')[3]);
@@ -780,12 +782,14 @@ async function loadProjects(){
       const pct=Math.round((p.status/Math.max(STAGES.length-1,1))*100);
       const delayed=isDelay(p);
       const pills=STAGES.map((s,i)=>`<span class="stage-pill ${i<p.status?'done':i===p.status?'current':''}">${s.split(' ')[0]}</span>`).join('');
+      // Normalize shoot_time untuk tampilan
+      const displayTime = normalizeTime(p.shoot_time);
       html+=`<div class="proj-card ${delayed?'delay':''}">
         <div class="proj-header">
           <div class="avatar">${initials(p.name)}</div>
           <div class="proj-info">
             <div class="proj-name">${p.name}</div>
-            <div class="proj-meta">${p.session_type||''} · ${p.package||''} · Shoot: ${fmtDate(p.shoot_date)}${p.shoot_time?' '+p.shoot_time:''}</div>
+            <div class="proj-meta">${p.session_type||''} · ${p.package||''} · Shoot: ${fmtDate(p.shoot_date)}${displayTime?' '+displayTime:''}</div>
           </div>
           <div style="text-align:right;display:flex;flex-direction:column;gap:4px;align-items:flex-end">
             ${stageBadge(p.status)}
@@ -830,7 +834,7 @@ async function loadProjects(){
             </div>
             <div>
               <div style="font-size:11px;color:var(--text3);margin-bottom:4px;text-transform:uppercase;letter-spacing:.5px">Jam Shoot</div>
-              <input type="time" id="ep-stime-${p.id}" value="${p.shoot_time||''}" style="font-size:12px;padding:6px 10px">
+              <input type="time" id="ep-stime-${p.id}" value="${normalizeTime(p.shoot_time)||''}" style="font-size:12px;padding:6px 10px">
             </div>
             <div>
               <div style="font-size:11px;color:var(--text3);margin-bottom:4px;text-transform:uppercase;letter-spacing:.5px">Link File Preset</div>
@@ -861,7 +865,6 @@ async function loadProjects(){
   }catch(e){ document.getElementById('proj-list').innerHTML='<div class="empty">Gagal memuat data.</div>'; toast(e.message,'error'); }
 }
 
-// Jump ke jadwal dengan tanggal tertentu
 function jumpToSchedule(date){
   document.getElementById('slot-date').value = date;
   goPage('schedule', document.querySelectorAll('.nav-item')[4]);
@@ -895,11 +898,8 @@ async function saveEditPanel(id){
   try{
     await dbPatch('bookings','id=eq.'+id,{session_type,package:pkg,shoot_date,shoot_time,file_link_preset,file_link,file_numbers,notes,last_updated:new Date().toISOString()});
     await addLog('Info diperbarui: '+session_type+' · '+pkg+(shoot_date?' · Shoot: '+fmtDate(shoot_date)+(shoot_time?' '+shoot_time:''):'')+' (ID '+id.slice(0,8)+')');
-    // Sync slot otomatis jika ada shoot_date & shoot_time
     if(shoot_date && shoot_time){
-      try{
-        await dbPost('slots',{slot_date:shoot_date,slot_time:shoot_time,client_name:''});
-      }catch(e){}
+      try{ await dbPost('slots',{slot_date:shoot_date,slot_time:shoot_time,client_name:''}); }catch(e){}
     }
     toast('Perubahan berhasil disimpan!','success');
     loadProjects();
@@ -938,20 +938,19 @@ async function loadSlots(){
   }
   document.getElementById('slot-grid').innerHTML='<div class="loading"><div class="spinner"></div>Memuat slot...</div>';
   try{
-    // Ambil bookings dengan shoot_date = d (terintegrasi)
     const [bookings, slots] = await Promise.all([
       db('bookings',{filter:`&shoot_date=eq.${d}`,order:'shoot_time.asc',select:'id,name,shoot_time,session_type,package,status'}),
       db('slots',{filter:`&slot_date=eq.${d}`,order:'slot_time.asc'})
     ]);
 
-    // Tampilkan booking yang ada di tanggal ini (dari data booking)
     let bookingHtml='';
     if(bookings.length){
       bookingHtml=`<div style="margin-bottom:.875rem">
         <div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:.5rem;display:flex;align-items:center;gap:6px"><span style="width:6px;height:6px;border-radius:50%;background:var(--neon);display:inline-block"></span>Dari Data Booking</div>`;
       bookings.forEach(b=>{
+        const displayTime = normalizeTime(b.shoot_time) || '—';
         bookingHtml+=`<div class="sched-booking-item">
-          <span class="sched-time">${b.shoot_time||'—'}</span>
+          <span class="sched-time">${displayTime}</span>
           <div style="flex:1"><div style="font-size:13px;color:var(--text);font-weight:500">${b.name}</div>
           <div style="font-size:11px;color:var(--text3)">${b.session_type||''} · ${b.package||''}</div></div>
           <span class="badge b-neon" style="font-size:10px">${STAGES[b.status]||'—'}</span>
@@ -960,16 +959,16 @@ async function loadSlots(){
       bookingHtml+='</div>';
     }
 
-    // Slot manual
     let slotHtml='';
     if(slots.length){
       slotHtml=`<div style="margin-bottom:.5rem">
         <div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:.5rem;display:flex;align-items:center;gap:6px"><span style="width:6px;height:6px;border-radius:50%;background:var(--accent2);display:inline-block"></span>Slot Manual</div>`;
       slots.forEach(s=>{
+        const displayTime = normalizeTime(s.slot_time) || '—';
         slotHtml+=`<div class="sched-manual-item">
-          <span class="sched-time manual">${s.slot_time||'—'}</span>
+          <span class="sched-time manual">${displayTime}</span>
           <span style="flex:1;font-size:13px;color:var(--text)">${s.client_name||'—'}</span>
-          <button class="btn btn-sm btn-danger" style="padding:3px 9px;font-size:11px" onclick="deleteSlot('${s.id}','${s.slot_time}','${(s.client_name||'').replace(/'/g,"\\'")}')">Hapus</button>
+          <button class="btn btn-sm btn-danger" style="padding:3px 9px;font-size:11px" onclick="deleteSlot('${s.id}','${displayTime}','${(s.client_name||'').replace(/'/g,"\\'")}')">Hapus</button>
         </div>`;
       });
       slotHtml+='</div>';
@@ -1021,10 +1020,10 @@ async function loadConfirmedSlots(){
       return;
     }
     let html='';
-    // Dari bookings
     bookings.forEach(b=>{
+      const displayTime = normalizeTime(b.shoot_time) || '—';
       html+=`<div style="display:flex;justify-content:space-between;align-items:center;padding:9px 0;border-bottom:1px solid var(--border)">
-        <span style="font-family:var(--font-head);font-size:12px;font-weight:600;color:var(--neon);min-width:50px">${b.shoot_time||'—'}</span>
+        <span style="font-family:var(--font-head);font-size:12px;font-weight:600;color:var(--neon);min-width:50px">${displayTime}</span>
         <div style="flex:1;margin:0 10px">
           <div style="font-size:13px;color:var(--text)">${b.name}</div>
           <div style="font-size:11px;color:var(--text3)">${b.session_type||''} · ${STAGES[b.status]||'—'}</div>
@@ -1032,12 +1031,12 @@ async function loadConfirmedSlots(){
         <span class="badge b-neon" style="font-size:10px">Booking</span>
       </div>`;
     });
-    // Slot manual
     slots.forEach(s=>{
+      const displayTime = normalizeTime(s.slot_time) || '—';
       html+=`<div style="display:flex;justify-content:space-between;align-items:center;padding:9px 0;border-bottom:1px solid var(--border)">
-        <span style="font-family:var(--font-head);font-size:12px;font-weight:600;color:var(--accent2);min-width:50px">${s.slot_time||'—'}</span>
+        <span style="font-family:var(--font-head);font-size:12px;font-weight:600;color:var(--accent2);min-width:50px">${displayTime}</span>
         <span style="font-size:13px;color:var(--text);flex:1;margin:0 10px">${s.client_name||'—'}</span>
-        <button class="btn btn-sm btn-danger" style="padding:2px 8px;font-size:10px" onclick="deleteSlot('${s.id}','${s.slot_time}','${(s.client_name||'').replace(/'/g,"\\'")}')">×</button>
+        <button class="btn btn-sm btn-danger" style="padding:2px 8px;font-size:10px" onclick="deleteSlot('${s.id}','${displayTime}','${(s.client_name||'').replace(/'/g,"\\'")}')">×</button>
       </div>`;
     });
     document.getElementById('confirmed-list').innerHTML=html;
@@ -1207,9 +1206,11 @@ function parseWaTime(str){
   if(!str) return null;
   const m=str.match(/(\d{1,2})[:.]\s*(\d{2})/);
   if(!m) return null;
+  // Selalu kembalikan HH:MM (tanpa detik) agar konsisten
   return m[1].padStart(2,'0')+':'+m[2];
 }
 
+// ─── FIX UTAMA: normalizeTime di findNextAvailableSlot ───────────────────────
 // Cari jam kosong pertama di tanggal tertentu, rentang 08:00–17:00
 async function findNextAvailableSlot(date){
   if(!date) return null;
@@ -1218,9 +1219,13 @@ async function findNextAvailableSlot(date){
       db('bookings',{filter:`&shoot_date=eq.${date}`,select:'shoot_time'}),
       db('slots',{filter:`&slot_date=eq.${date}`,select:'slot_time'})
     ]);
+    // ★ FIX: Supabase kolom bertipe `time` mengembalikan "09:00:00" (ada detiknya),
+    //        bukan "09:00". Tanpa normalizeTime(), "09:00:00" !== "09:00" → tidak
+    //        pernah match → semua slot selalu dianggap kosong lalu looping sampai
+    //        tidak ada yang ketemu → hasil: "semua slot penuh" padahal kosong semua.
     const takenTimes = new Set([
-      ...bookings.map(b=>b.shoot_time).filter(Boolean),
-      ...slots.map(s=>s.slot_time).filter(Boolean)
+      ...bookings.map(b => normalizeTime(b.shoot_time)).filter(Boolean),
+      ...slots.map(s => normalizeTime(s.slot_time)).filter(Boolean)
     ]);
     // Slot per jam: 08:00 sampai 17:00
     for(let h=8; h<=17; h++){
@@ -1235,7 +1240,6 @@ async function parseWaText(){
   const raw=document.getElementById('iwa-raw').value.trim();
   if(!raw){toast('Paste teks WA dulu!','error');return;}
 
-  // Tombol parse: tampilkan loading sementara
   const btn = document.querySelector('#iwa-step1 .btn-primary');
   if(btn){ btn.textContent='⏳ Memproses...'; btn.disabled=true; }
 
@@ -1262,7 +1266,6 @@ async function parseWaText(){
   let shootTime   = parseWaTime(jamFoto);
   let autoSlotMsg = null;
 
-  // Jika jam tidak ada di teks WA tapi tanggal ada → cari slot kosong otomatis
   if(!shootTime && shootDate){
     const found = await findNextAvailableSlot(shootDate);
     if(found){
@@ -1279,21 +1282,18 @@ async function parseWaText(){
   document.getElementById('iwa-sdate').value = shootDate||'';
   document.getElementById('iwa-stime').value = shootTime||'';
 
-  // Tipe sesi — cocokkan
   const typeEl=document.getElementById('iwa-type');
   if(jenis&&typeEl){
     const match=Array.from(typeEl.options).find(o=>o.value.toLowerCase().includes(jenis.toLowerCase())||jenis.toLowerCase().includes(o.value.toLowerCase()));
     if(match) typeEl.value=match.value;
   }
 
-  // Paket — cocokkan
   const pkgEl=document.getElementById('iwa-pkg');
   if(paket&&pkgEl){
     const match=Array.from(pkgEl.options).find(o=>o.value.toLowerCase().includes(paket.toLowerCase())||paket.toLowerCase().includes(o.value.toLowerCase()));
     if(match) pkgEl.value=match.value;
   }
 
-  // Catatan gabungan
   const notes=[
     jenis  ?'Jenis Acara: '+jenis :null,
     lokasi ?'Lokasi: '+lokasi     :null,
@@ -1346,7 +1346,6 @@ async function submitImportWa(){
     };
     await dbPost('bookings',data);
     await addLog('Booking import WA: '+name+' ('+data.session_type+')'+(sdate?' · Shoot: '+fmtDate(sdate)+(stime?' '+stime:''):''));
-    // Auto-tambah slot jika ada waktu
     if(sdate&&stime){
       try{ await dbPost('slots',{slot_date:sdate,slot_time:stime,client_name:name}); }catch(e){}
     }
@@ -1354,7 +1353,6 @@ async function submitImportWa(){
     document.getElementById('iwa-raw').value='';
     document.getElementById('iwa-step2').style.display='none';
     document.getElementById('iwa-step1').style.display='block';
-    // Pindah ke Projects — nav-item index 3
     goPage('projects',document.querySelectorAll('.nav-item')[3]);
   }catch(e){ toast('Gagal menyimpan: '+e.message,'error'); }
   btn.textContent='💾 Simpan Booking'; btn.disabled=false;
