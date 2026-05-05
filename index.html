@@ -225,6 +225,7 @@
       <div class="nav-item" onclick="goPage('projects',this)"><span class="nav-icon">▦</span> Projects <span class="nav-badge" id="nb-active">0</span></div>
       <div class="nav-item" onclick="goPage('schedule',this)"><span class="nav-icon">◷</span> Jadwal</div>
       <div class="nav-item" onclick="goPage('logs',this)"><span class="nav-icon">≡</span> Activity Log</div>
+      <div class="nav-item" onclick="goPage('absen',this)"><span class="nav-icon">🏖</span> Absen Crew</div>
       <div class="nav-item" onclick="goPage('settings',this)"><span class="nav-icon">⚙</span> Pengaturan</div>
     </nav>
     <div class="sidebar-footer">
@@ -274,6 +275,14 @@
           <div class="sec-head"><div class="sec-title">Notifikasi Tim</div><span class="badge b-danger" id="notif-count">0</span></div>
           <div id="dash-notif"><div class="empty">Tidak ada notifikasi</div></div>
         </div>
+      </div>
+      <div class="card" style="margin-top:1rem">
+        <div class="sec-head">
+          <div class="sec-title">&#x1F3D6; Jadwal Libur Crew</div>
+          <span class="badge b-gold" id="dash-libur-count">0 izin</span>
+        </div>
+        <div style="font-size:12px;color:var(--text3);margin-bottom:.75rem">Crew yang sedang/akan libur bulan ini</div>
+        <div id="dash-libur-list"><div class="loading"><div class="spinner"></div>Memuat...</div></div>
       </div>
     </div>
 
@@ -423,6 +432,69 @@ Jumlah DP/LUNAS : dp 100.000"></textarea>
       </div>
     </div>
 
+    <!-- ABSEN CREW -->
+    <div class="page" id="page-absen">
+      <div class="page-title">Absen Crew</div>
+      <div class="page-sub">Ajukan izin libur — maksimal 5 kali per bulan</div>
+      <div class="g2" style="align-items:start">
+        <div class="card">
+          <div class="sec-head">
+            <div class="sec-title">📝 Ajukan Izin Libur</div>
+            <span class="badge b-purple" id="absen-quota-badge">0 / 5</span>
+          </div>
+          <div id="absen-quota-warn" style="display:none;background:rgba(240,90,90,.07);border:1px solid rgba(240,90,90,.2);border-radius:var(--r);padding:.65rem .875rem;font-size:12px;color:var(--danger);margin-bottom:.875rem"></div>
+          <div id="absen-form-area">
+            <div class="form-group">
+              <label class="form-label">Nama Crew</label>
+              <input type="text" id="absen-nama" placeholder="Nama kamu..." readonly style="background:var(--bg3);opacity:.8">
+            </div>
+            <div class="form-row">
+              <div class="form-group">
+                <label class="form-label">Hari</label>
+                <select id="absen-hari">
+                  <option value="Senin">Senin</option>
+                  <option value="Selasa">Selasa</option>
+                  <option value="Rabu">Rabu</option>
+                  <option value="Kamis">Kamis</option>
+                  <option value="Jumat">Jumat</option>
+                  <option value="Sabtu">Sabtu</option>
+                  <option value="Minggu">Minggu</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Tanggal Libur</label>
+                <input type="date" id="absen-tanggal">
+              </div>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Alasan Libur</label>
+              <textarea id="absen-alasan" placeholder="Contoh: Sakit, keperluan keluarga, acara penting..."></textarea>
+            </div>
+            <div style="display:flex;justify-content:flex-end">
+              <button class="btn btn-primary" onclick="submitAbsen()" id="absen-submit-btn">&#x1F4E4; Ajukan Izin</button>
+            </div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="sec-head">
+            <div class="sec-title">&#x1F4CB; Riwayat Izin Bulan Ini</div>
+            <button class="btn btn-sm" onclick="loadAbsenList()">&#x21BA;</button>
+          </div>
+          <div id="absen-list"><div class="loading"><div class="spinner"></div>Memuat...</div></div>
+        </div>
+      </div>
+      <div class="card" style="margin-top:1rem" id="absen-all-card">
+        <div class="sec-head">
+          <div class="sec-title">&#x1F465; Semua Pengajuan Izin Crew</div>
+          <div style="display:flex;gap:.5rem;align-items:center">
+            <input type="month" id="absen-filter-bulan" onchange="loadAbsenAll()" style="font-size:12px;padding:5px 9px;width:auto">
+            <button class="btn btn-sm" onclick="loadAbsenAll()">&#x21BA;</button>
+          </div>
+        </div>
+        <div id="absen-all-list"><div class="loading"><div class="spinner"></div>Memuat...</div></div>
+      </div>
+    </div>
+
     <!-- SETTINGS -->
     <div class="page" id="page-settings">
       <div class="page-title">Pengaturan</div>
@@ -520,16 +592,16 @@ Jumlah DP/LUNAS : dp 100.000"></textarea>
 // ─── AUTH SYSTEM ──────────────────────────────────────────────────────────────
 // Role permissions
 const ROLE_PERMS = {
-  owner: ['dashboard','booking','importwa','projects','schedule','logs','settings'],
-  admin: ['dashboard','booking','importwa','projects','schedule','logs'],
-  editor:['dashboard','projects','schedule','logs'],
+  owner: ['dashboard','booking','importwa','projects','schedule','logs','absen','settings'],
+  admin: ['dashboard','booking','importwa','projects','schedule','logs','absen'],
+  editor:['dashboard','projects','schedule','logs','absen'],
 };
 
 // Nav items yang disembunyikan per role (index dari querySelectorAll('.nav-item'))
 // 0=dashboard,1=booking,2=importwa,3=projects,4=schedule,5=logs,6=settings
 const NAV_HIDDEN = {
-  admin:  [6],        // sembunyikan settings
-  editor: [1,2,6],    // sembunyikan booking baru, import wa, settings
+  admin:  [7],        // sembunyikan settings
+  editor: [1,2,7],    // sembunyikan booking baru, import wa, settings
 };
 
 // Daftar akun owner (bisa lebih dari satu)
@@ -794,6 +866,7 @@ function goPage(id, el){
   }
   if(id==='settings'){ renderSesiList(); renderPaketList(); renderStagesList(); renderStaffList(); }
   if(id==='importwa'){ initImportWaDropdowns(); }
+  if(id==='absen'){ initAbsenPage(); }
 }
 
 // ─── UTILS ───────────────────────────────────────────────────────────────────
@@ -901,6 +974,7 @@ async function loadDashboard(){
     }
 
     await loadDashTodaySchedule();
+    await loadDashLibur();
 
     const active = all.filter(p=>p.status<STAGES.length);
     let progHtml = !active.length ? '<div class="empty">Tidak ada project aktif</div>' : '';
@@ -1742,6 +1816,241 @@ async function saveJamBooking(id){
     loadSlots();
   }catch(e){
     toast('Gagal simpan jam: '+e.message,'error');
+  }
+}
+
+// ─── ABSEN CREW ───────────────────────────────────────────────────────────────
+function getYearMonth(d){ const dt=d?new Date(d):new Date(); return dt.getFullYear()+'-'+String(dt.getMonth()+1).padStart(2,'0'); }
+
+function initAbsenPage(){
+  const s = getSession();
+  const nameEl = document.getElementById('absen-nama');
+  if(nameEl && s) nameEl.value = s.name;
+
+  // Set default tanggal ke hari ini
+  const tgl = document.getElementById('absen-tanggal');
+  if(tgl && !tgl.value) tgl.value = today();
+
+  // Set hari otomatis sesuai tanggal
+  if(tgl) tgl.addEventListener('change', syncAbsenHari);
+  syncAbsenHari();
+
+  // Sembunyikan/tampilkan bagian "semua pengajuan" sesuai role
+  const s2 = getSession();
+  const allCard = document.getElementById('absen-all-card');
+  if(allCard) allCard.style.display = (s2&&(s2.role==='owner'||s2.role==='admin')) ? 'block' : 'none';
+
+  // Set default filter bulan ke bulan ini
+  const bln = document.getElementById('absen-filter-bulan');
+  if(bln && !bln.value) bln.value = getYearMonth();
+
+  loadAbsenList();
+  loadAbsenAll();
+}
+
+function syncAbsenHari(){
+  const tgl = document.getElementById('absen-tanggal');
+  const hari = document.getElementById('absen-hari');
+  if(!tgl||!hari||!tgl.value) return;
+  const days = ['Minggu','Senin','Selasa','Rabu','Kamis','Jumat','Sabtu'];
+  const d = new Date(tgl.value+'T00:00:00');
+  hari.value = days[d.getDay()];
+}
+
+async function getAbsenBulanIni(nama){
+  const ym = getYearMonth();
+  const start = ym+'-01';
+  const end = ym+'-31';
+  try{
+    const rows = await db('crew_absen',{
+      filter:`&crew_name=eq.${encodeURIComponent(nama)}&tanggal_libur=gte.${start}&tanggal_libur=lte.${end}`,
+      order:'tanggal_libur.asc'
+    });
+    return rows||[];
+  }catch(e){ return []; }
+}
+
+async function loadAbsenList(){
+  const s = getSession();
+  if(!s) return;
+  const listEl = document.getElementById('absen-list');
+  const quotaBadge = document.getElementById('absen-quota-badge');
+  const warnEl = document.getElementById('absen-quota-warn');
+  const submitBtn = document.getElementById('absen-submit-btn');
+  if(!listEl) return;
+
+  listEl.innerHTML = '<div class="loading"><div class="spinner"></div>Memuat...</div>';
+  const rows = await getAbsenBulanIni(s.name);
+  const used = rows.length;
+  const limit = 5;
+  const sisa = limit - used;
+
+  if(quotaBadge) quotaBadge.textContent = used+' / '+limit;
+  if(warnEl){
+    if(used >= limit){
+      warnEl.style.display = 'block';
+      warnEl.textContent = '⚠ Kamu sudah mengajukan '+used+' izin bulan ini. Batas 5x/bulan sudah tercapai.';
+      if(submitBtn){ submitBtn.disabled=true; submitBtn.style.opacity='.5'; }
+    } else {
+      warnEl.style.display = 'none';
+      if(submitBtn){ submitBtn.disabled=false; submitBtn.style.opacity='1'; }
+      if(sisa<=2) {
+        warnEl.style.display='block';
+        warnEl.style.background='rgba(240,161,74,.07)';
+        warnEl.style.borderColor='rgba(240,161,74,.2)';
+        warnEl.style.color='var(--warn)';
+        warnEl.textContent = '⚠ Sisa kuota izin bulan ini: '+sisa+' kali lagi.';
+      }
+    }
+  }
+
+  if(!rows.length){
+    listEl.innerHTML='<div class="empty">Belum ada izin diajukan bulan ini.</div>';
+    return;
+  }
+  listEl.innerHTML = rows.map(r=>`
+    <div style="display:flex;align-items:flex-start;gap:10px;padding:9px 0;border-bottom:1px solid var(--border)">
+      <div style="background:rgba(124,106,247,.12);border:1px solid rgba(124,106,247,.25);border-radius:8px;padding:4px 8px;text-align:center;min-width:52px;flex-shrink:0">
+        <div style="font-family:var(--font-head);font-size:13px;font-weight:700;color:var(--accent2)">${r.hari||'—'}</div>
+        <div style="font-size:10px;color:var(--text3)">${fmtDate(r.tanggal_libur)}</div>
+      </div>
+      <div style="flex:1">
+        <div style="font-size:13px;font-weight:500;color:var(--text)">${r.alasan||'—'}</div>
+        <div style="font-size:11px;color:var(--text3);margin-top:2px">Diajukan: ${fmtDT(r.created_at)}</div>
+      </div>
+      <span class="badge b-neon" style="font-size:10px">Diajukan</span>
+    </div>`).join('');
+}
+
+async function submitAbsen(){
+  const s = getSession();
+  if(!s){ toast('Kamu belum login!','error'); return; }
+  const nama = s.name;
+  const tanggal = document.getElementById('absen-tanggal').value;
+  const hari = document.getElementById('absen-hari').value;
+  const alasan = document.getElementById('absen-alasan').value.trim();
+
+  if(!tanggal){ toast('Pilih tanggal libur dulu!','error'); return; }
+  if(!alasan){ toast('Isi alasan libur!','error'); return; }
+
+  // Cek quota
+  const existing = await getAbsenBulanIni(nama);
+  if(existing.length >= 5){
+    toast('Batas 5x izin bulan ini sudah tercapai!','error');
+    return;
+  }
+  // Cek duplikat tanggal
+  if(existing.find(r=>r.tanggal_libur===tanggal)){
+    toast('Kamu sudah mengajukan izin untuk tanggal ini!','warn');
+    return;
+  }
+
+  const btn = document.getElementById('absen-submit-btn');
+  btn.textContent='Menyimpan...'; btn.disabled=true;
+  try{
+    await dbPost('crew_absen',{
+      crew_name: nama,
+      hari,
+      tanggal_libur: tanggal,
+      alasan,
+      created_at: new Date().toISOString()
+    });
+    await addLog('Izin libur: '+nama+' tanggal '+fmtDate(tanggal)+' ('+hari+') — '+alasan);
+    toast('Izin libur berhasil diajukan!','success');
+    document.getElementById('absen-tanggal').value = today();
+    document.getElementById('absen-alasan').value = '';
+    loadAbsenList();
+    loadAbsenAll();
+  }catch(e){ toast('Gagal menyimpan: '+e.message,'error'); }
+  btn.textContent='📤 Ajukan Izin'; btn.disabled=false;
+}
+
+async function loadAbsenAll(){
+  const allCard = document.getElementById('absen-all-card');
+  const s = getSession();
+  if(!s||!(s.role==='owner'||s.role==='admin')){ if(allCard) allCard.style.display='none'; return; }
+
+  const listEl = document.getElementById('absen-all-list');
+  if(!listEl) return;
+  listEl.innerHTML='<div class="loading"><div class="spinner"></div>Memuat...</div>';
+
+  const bln = document.getElementById('absen-filter-bulan');
+  const ym = (bln&&bln.value) ? bln.value : getYearMonth();
+  const start = ym+'-01';
+  const end = ym+'-31';
+
+  try{
+    const rows = await db('crew_absen',{
+      filter:`&tanggal_libur=gte.${start}&tanggal_libur=lte.${end}`,
+      order:'tanggal_libur.asc',
+      limit:200
+    });
+    if(!rows||!rows.length){
+      listEl.innerHTML='<div class="empty">Tidak ada izin diajukan bulan ini.</div>';
+      return;
+    }
+    // Group by crew_name
+    const byName = {};
+    rows.forEach(r=>{ if(!byName[r.crew_name]) byName[r.crew_name]=[]; byName[r.crew_name].push(r); });
+    listEl.innerHTML = Object.entries(byName).map(([nama,items])=>`
+      <div style="margin-bottom:1rem">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:.5rem">
+          <div style="width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,var(--accent),var(--neon));display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#fff;flex-shrink:0">${nama.slice(0,2).toUpperCase()}</div>
+          <div style="font-size:13px;font-weight:600;color:var(--text)">${nama}</div>
+          <span class="badge ${items.length>=5?'b-danger':'b-gold'}" style="font-size:10px">${items.length} / 5 izin</span>
+        </div>
+        ${items.map(r=>`
+          <div style="display:flex;align-items:center;gap:10px;padding:7px 10px;background:var(--bg3);border:1px solid var(--border);border-radius:var(--r);margin-bottom:4px">
+            <span style="font-family:var(--font-head);font-size:12px;font-weight:600;color:var(--accent2);min-width:52px">${r.hari}</span>
+            <span style="font-size:12px;color:var(--text2);flex:1">${fmtDate(r.tanggal_libur)} — ${r.alasan}</span>
+            ${(s.role==='owner')?`<button class="btn btn-sm btn-danger" style="font-size:10px;padding:3px 8px" onclick="deleteAbsen('${r.id}')">Hapus</button>`:''}
+          </div>`).join('')}
+      </div>`).join('');
+  }catch(e){
+    listEl.innerHTML='<div class="empty">Gagal memuat — pastikan tabel crew_absen sudah dibuat di Supabase.</div>';
+  }
+}
+
+async function deleteAbsen(id){
+  showModal('Hapus Izin','Hapus data izin ini?', async()=>{
+    try{
+      await dbDelete('crew_absen','id=eq.'+id);
+      toast('Data izin dihapus','info');
+      loadAbsenAll();
+    }catch(e){ toast('Gagal hapus: '+e.message,'error'); }
+  });
+}
+
+async function loadDashLibur(){
+  const listEl = document.getElementById('dash-libur-list');
+  const countEl = document.getElementById('dash-libur-count');
+  if(!listEl) return;
+  const ym = getYearMonth();
+  const start = ym+'-01';
+  const end = ym+'-31';
+  try{
+    const rows = await db('crew_absen',{
+      filter:`&tanggal_libur=gte.${start}&tanggal_libur=lte.${end}`,
+      order:'tanggal_libur.asc',
+      limit:100
+    });
+    if(countEl) countEl.textContent = (rows?rows.length:0)+' izin';
+    if(!rows||!rows.length){
+      listEl.innerHTML='<div class="empty" style="padding:1rem">Tidak ada izin libur bulan ini.</div>';
+      return;
+    }
+    listEl.innerHTML = rows.map(r=>`
+      <div style="display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid var(--border)">
+        <div style="width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,var(--accent),var(--neon));display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:#fff;flex-shrink:0">${r.crew_name.slice(0,2).toUpperCase()}</div>
+        <div style="flex:1">
+          <div style="font-size:13px;font-weight:500;color:var(--text)">${r.crew_name}</div>
+          <div style="font-size:11px;color:var(--text3)">${r.hari}, ${fmtDate(r.tanggal_libur)}</div>
+        </div>
+        <div style="font-size:11px;color:var(--text2);max-width:160px;text-align:right;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${r.alasan}</div>
+      </div>`).join('');
+  }catch(e){
+    listEl.innerHTML='<div class="empty" style="padding:1rem">—</div>';
+    if(countEl) countEl.textContent='—';
   }
 }
 
