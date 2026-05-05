@@ -410,15 +410,15 @@ Jumlah DP/LUNAS : dp 100.000"></textarea>
 
         <div class="card">
           <div class="sec-head">
-            <div class="sec-title">📋 Jadwal Lengkap</div>
-            <button class="btn btn-sm" onclick="loadConfirmedSlots()">↺</button>
+            <div class="sec-title">📋 Semua Jadwal</div>
+            <button class="btn btn-sm" onclick="loadAllSchedules()">↺</button>
           </div>
-          <div id="slot-date-label-right" style="font-size:11px;color:var(--text3);margin-bottom:.75rem">—</div>
+          <div style="font-size:11px;color:var(--text3);margin-bottom:.75rem">Semua jadwal yang sudah diinput — dari booking & slot manual</div>
           <div style="display:flex;gap:8px;margin-bottom:.75rem;font-size:11px;color:var(--text3)">
             <span style="display:flex;align-items:center;gap:4px"><span style="width:8px;height:8px;border-radius:50%;background:var(--neon);display:inline-block"></span>Dari Booking</span>
             <span style="display:flex;align-items:center;gap:4px"><span style="width:8px;height:8px;border-radius:50%;background:var(--accent2);display:inline-block"></span>Slot Manual</span>
           </div>
-          <div id="confirmed-list"><div class="empty">Pilih tanggal untuk melihat jadwal</div></div>
+          <div id="confirmed-list"><div class="loading"><div class="spinner"></div>Memuat semua jadwal...</div></div>
         </div>
       </div>
     </div>
@@ -788,8 +788,9 @@ function goPage(id, el){
   if(id==='logs') loadLogs();
   if(id==='schedule'){
     const d = document.getElementById('slot-date').value;
-    if(!d){ document.getElementById('slot-date').value = today(); }
-    loadSlots();
+    if(!d){ document.getElementById('slot-date').value = today(); loadSlots(); }
+    else { loadSlots(); }
+    loadAllSchedules();
   }
   if(id==='settings'){ renderSesiList(); renderPaketList(); renderStagesList(); renderStaffList(); }
   if(id==='importwa'){ initImportWaDropdowns(); }
@@ -1184,13 +1185,11 @@ async function loadSlots(){
   const d = document.getElementById('slot-date').value;
   const label = fmtDateLabel(d);
   const lblEl = document.getElementById('slot-date-label');
-  const lblRight = document.getElementById('slot-date-label-right');
   if(lblEl) lblEl.textContent = d ? label : '';
-  if(lblRight) lblRight.textContent = d ? label : '—';
 
   if(!d){
     document.getElementById('slot-grid').innerHTML='<div class="empty">Pilih tanggal untuk melihat jadwal</div>';
-    document.getElementById('confirmed-list').innerHTML='<div class="empty">Pilih tanggal untuk melihat jadwal</div>';
+    loadAllSchedules();
     return;
   }
   document.getElementById('slot-grid').innerHTML='<div class="loading"><div class="spinner"></div>Memuat slot...</div>';
@@ -1263,7 +1262,7 @@ async function loadSlots(){
     } else {
       document.getElementById('slot-grid').innerHTML = bookingHtml + slotHtml;
     }
-    loadConfirmedSlots();
+    loadAllSchedules();
   }catch(e){ toast('Gagal memuat slot: '+e.message,'error'); }
 }
 
@@ -1291,51 +1290,106 @@ async function confirmSlot(){
   }
 }
 
+// Tetap ada loadConfirmedSlots (dipanggil internal dari loadSlots) — sekarang alias ke loadAllSchedules
 async function loadConfirmedSlots(){
-  const d = document.getElementById('slot-date').value;
-  if(!d){ document.getElementById('confirmed-list').innerHTML='<div class="empty">Pilih tanggal</div>'; return; }
+  await loadAllSchedules();
+}
+
+async function loadAllSchedules(){
+  const listEl = document.getElementById('confirmed-list');
+  listEl.innerHTML='<div class="loading"><div class="spinner"></div>Memuat semua jadwal...</div>';
   try{
     const [bookings, slots] = await Promise.all([
-      db('bookings',{filter:`&shoot_date=eq.${d}`,select:'id,name,session_type,status'}),
-      db('slots',{filter:`&slot_date=eq.${d}`,order:'slot_time.asc'})
+      db('bookings',{filter:'&shoot_date=not.is.null',select:'id,name,session_type,status,shoot_date',order:'shoot_date.asc'}),
+      db('slots',{order:'slot_date.asc,slot_time.asc'})
     ]);
+
     if(!bookings.length && !slots.length){
-      document.getElementById('confirmed-list').innerHTML='<div class="empty">Belum ada jadwal untuk tanggal ini</div>';
+      listEl.innerHTML='<div class="empty">Belum ada jadwal sama sekali.<br><span style="font-size:11px">Tambahkan booking atau slot manual dulu.</span></div>';
       return;
     }
-    // Buat map slot berdasarkan client_name untuk join ke bookings
-    const slotByNameR = {};
-    slots.forEach(s=>{
-      const key = (s.client_name||'').toLowerCase().trim();
-      if(key && !slotByNameR[key]) slotByNameR[key] = s;
+
+    // Kelompokkan semua jadwal berdasarkan tanggal
+    const byDate = {};
+
+    bookings.forEach(b=>{
+      const d = b.shoot_date;
+      if(!byDate[d]) byDate[d]={bookings:[],slots:[]};
+      byDate[d].bookings.push(b);
     });
-    const usedSlotIdsR = new Set();
+    slots.forEach(s=>{
+      const d = s.slot_date;
+      if(!byDate[d]) byDate[d]={bookings:[],slots:[]};
+      byDate[d].slots.push(s);
+    });
+
+    // Urutkan tanggal ascending
+    const sortedDates = Object.keys(byDate).sort();
+    const todayStr = today();
 
     let html='';
-    bookings.forEach(b=>{
-      const matchedSlot = slotByNameR[(b.name||'').toLowerCase().trim()];
-      const displayTime = matchedSlot ? (normalizeTime(matchedSlot.slot_time)||'—') : '—';
-      if(matchedSlot) usedSlotIdsR.add(matchedSlot.id);
-      html+=`<div style="display:flex;justify-content:space-between;align-items:center;padding:9px 0;border-bottom:1px solid var(--border)">
-        <span style="font-family:var(--font-head);font-size:12px;font-weight:600;color:var(--neon);min-width:50px">${displayTime}</span>
-        <div style="flex:1;margin:0 10px">
-          <div style="font-size:13px;color:var(--text)">${b.name}</div>
-          <div style="font-size:11px;color:var(--text3)">${b.session_type||''} · ${STAGES[b.status]||'—'}</div>
-        </div>
-        <span class="badge b-neon" style="font-size:10px">Booking</span>
-      </div>`;
+    sortedDates.forEach(d=>{
+      const group = byDate[d];
+      const isToday = d === todayStr;
+      const isPast = d < todayStr;
+
+      // Format tanggal header
+      const dateObj = new Date(d+'T00:00:00');
+      const dayNames = ['Minggu','Senin','Selasa','Rabu','Kamis','Jumat','Sabtu'];
+      const monthNames = ['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agu','Sep','Okt','Nov','Des'];
+      const dayLabel = dayNames[dateObj.getDay()];
+      const dateLabel = `${dateObj.getDate()} ${monthNames[dateObj.getMonth()]} ${dateObj.getFullYear()}`;
+      const todayBadge = isToday ? '<span class="badge b-neon" style="font-size:9px;margin-left:6px">HARI INI</span>' : '';
+      const pastStyle = isPast && !isToday ? 'opacity:.5' : '';
+
+      // Build slot map by client name for this date
+      const slotByName = {};
+      group.slots.forEach(s=>{
+        const key=(s.client_name||'').toLowerCase().trim();
+        if(key && !slotByName[key]) slotByName[key]=s;
+      });
+      const usedSlotIds = new Set();
+
+      html+=`<div style="margin-bottom:1rem;${pastStyle}">
+        <div style="display:flex;align-items:center;gap:6px;padding:6px 10px;background:var(--bg3);border:1px solid var(--border${isToday?'2':''});border-radius:var(--r);margin-bottom:6px${isToday?';border-color:rgba(57,224,155,.35)':''}">
+          <span style="font-family:var(--font-head);font-size:12px;font-weight:700;color:${isToday?'var(--neon)':isPast?'var(--text3)':'var(--accent2)'}">${dayLabel}, ${dateLabel}</span>
+          ${todayBadge}
+          <span class="badge b-gray" style="margin-left:auto;font-size:9px">${group.bookings.length+group.slots.length} jadwal</span>
+        </div>`;
+
+      // Bookings untuk tanggal ini
+      group.bookings.forEach(b=>{
+        const matchedSlot = slotByName[(b.name||'').toLowerCase().trim()];
+        const displayTime = matchedSlot ? (normalizeTime(matchedSlot.slot_time)||'—') : '—';
+        if(matchedSlot) usedSlotIds.add(matchedSlot.id);
+        html+=`<div style="display:flex;align-items:center;padding:8px 10px;border-bottom:1px solid var(--border);gap:8px">
+          <span style="font-family:var(--font-head);font-size:12px;font-weight:600;color:var(--neon);min-width:46px">${displayTime}</span>
+          <div style="flex:1">
+            <div style="font-size:13px;color:var(--text);font-weight:500">${b.name}</div>
+            <div style="font-size:11px;color:var(--text3)">${b.session_type||''} · ${STAGES[b.status]||'—'}</div>
+          </div>
+          <span class="badge b-neon" style="font-size:9px;flex-shrink:0">Booking</span>
+        </div>`;
+      });
+
+      // Slot manual yang belum dipakai booking
+      group.slots.filter(s=>!usedSlotIds.has(s.id)).forEach(s=>{
+        const displayTime = normalizeTime(s.slot_time)||'—';
+        html+=`<div style="display:flex;align-items:center;padding:8px 10px;border-bottom:1px solid var(--border);gap:8px">
+          <span style="font-family:var(--font-head);font-size:12px;font-weight:600;color:var(--accent2);min-width:46px">${displayTime}</span>
+          <span style="font-size:13px;color:var(--text);flex:1">${s.client_name||'—'}</span>
+          <span class="badge b-purple" style="font-size:9px;flex-shrink:0">Manual</span>
+          <button class="btn btn-sm btn-danger" style="padding:2px 7px;font-size:10px;flex-shrink:0" onclick="deleteSlot('${s.id}','${displayTime}','${(s.client_name||'').replace(/'/g,"\\'")}')">×</button>
+        </div>`;
+      });
+
+      html+='</div>';
     });
-    // Slot manual: hanya yang tidak dipakai booking
-    slots.filter(s=>!usedSlotIdsR.has(s.id)).forEach(s=>{
-      const displayTime = normalizeTime(s.slot_time) || '—';
-      html+=`<div style="display:flex;justify-content:space-between;align-items:center;padding:9px 0;border-bottom:1px solid var(--border)">
-        <span style="font-family:var(--font-head);font-size:12px;font-weight:600;color:var(--accent2);min-width:50px">${displayTime}</span>
-        <span style="font-size:13px;color:var(--text);flex:1;margin:0 10px">${s.client_name||'—'}</span>
-        <button class="btn btn-sm btn-danger" style="padding:2px 8px;font-size:10px" onclick="deleteSlot('${s.id}','${displayTime}','${(s.client_name||'').replace(/'/g,"\\'")}')">×</button>
-      </div>`;
-    });
-    document.getElementById('confirmed-list').innerHTML=html;
-  }catch(e){}
+
+    listEl.innerHTML=html;
+  }catch(e){
+    listEl.innerHTML='<div class="empty">Gagal memuat jadwal: '+e.message+'</div>';
+  }
 }
 
 async function deleteSlot(id,time,clientName){
