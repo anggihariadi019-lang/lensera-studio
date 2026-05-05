@@ -541,7 +541,34 @@ const OWNERS = [
 function getStaffList(){
   try{ return JSON.parse(localStorage.getItem('lensera_staff')||'[]'); }catch(e){ return []; }
 }
-function saveStaffList(list){ localStorage.setItem('lensera_staff',JSON.stringify(list)); }
+function saveStaffList(list){
+  localStorage.setItem('lensera_staff',JSON.stringify(list));
+  syncStaffToCloud(list).catch(()=>{});
+}
+
+async function syncStaffToCloud(list){
+  try{
+    const payload={config_key:'staff_list',config_value:JSON.stringify(list),updated_at:new Date().toISOString()};
+    const url=SB_URL+'/rest/v1/app_config?config_key=eq.staff_list';
+    const res=await fetch(url,{method:'PATCH',headers:{...H,'Prefer':'return=representation'},body:JSON.stringify(payload)});
+    const patched=await res.json();
+    if(!patched||!patched.length){ await dbPost('app_config',payload); }
+  }catch(e){}
+}
+
+async function restoreStaffFromCloud(){
+  try{
+    const rows=await db('app_config',{filter:'&config_key=eq.staff_list',select:'config_value'});
+    if(rows&&rows.length&&rows[0].config_value){
+      const list=JSON.parse(rows[0].config_value);
+      if(Array.isArray(list)&&list.length){
+        localStorage.setItem('lensera_staff',JSON.stringify(list));
+        return list;
+      }
+    }
+  }catch(e){}
+  return [];
+}
 
 function getSession(){
   try{
@@ -560,7 +587,7 @@ function saveSession(name, role){
 }
 function clearSession(){ localStorage.removeItem('lensera_session'); }
 
-function doLogin(){
+async function doLogin(){
   const name = document.getElementById('login-name').value.trim().toLowerCase();
   const pin  = document.getElementById('login-pin').value;
   const errEl = document.getElementById('login-error');
@@ -577,8 +604,14 @@ function doLogin(){
     return;
   }
 
-  // Cek staff
-  const staff = getStaffList();
+  // Cek staff — kalau localStorage kosong, coba restore dari Supabase dulu
+  let staff = getStaffList();
+  if(!staff.length){
+    const btn = document.querySelector('#login-screen .btn-primary');
+    if(btn){ btn.textContent='Mengecek...'; btn.disabled=true; }
+    staff = await restoreStaffFromCloud();
+    if(btn){ btn.textContent='Masuk →'; btn.disabled=false; }
+  }
   const found = staff.find(s => s.name.toLowerCase() === name && s.pin === pin);
   if(found){
     saveSession(found.name, found.role);
@@ -1662,10 +1695,13 @@ async function saveJamBooking(id){
 // Reset default lists kalau versi berubah (hapus cache lama)
 const DATA_VERSION = 'v2';
 if(localStorage.getItem('lensera_data_version') !== DATA_VERSION){
+  // PENTING: lensera_staff TIDAK ikut dihapus supaya data pegawai tetap aman
+  const staffBackup = localStorage.getItem('lensera_staff'); // backup dulu
   localStorage.removeItem('lensera_sesi');
   localStorage.removeItem('lensera_paket');
   localStorage.removeItem('lensera_stages');
   localStorage.setItem('lensera_data_version', DATA_VERSION);
+  if(staffBackup) localStorage.setItem('lensera_staff', staffBackup); // restore staff
 }
 
 // Cek session — tampilkan login atau langsung masuk
