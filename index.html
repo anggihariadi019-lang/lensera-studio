@@ -185,6 +185,22 @@
 
 <div id="toast"></div>
 
+<!-- POPUP TOLAK IZIN -->
+<div id="tolak-bg" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:300;align-items:center;justify-content:center">
+  <div style="background:var(--card);border:1px solid var(--border2);border-radius:var(--r2);padding:1.75rem;width:420px;max-width:94vw">
+    <div style="font-family:var(--font-head);font-size:15px;font-weight:600;color:var(--text);margin-bottom:.25rem">✗ Tolak Izin</div>
+    <div style="font-size:12px;color:var(--text3);margin-bottom:1rem" id="tolak-info">—</div>
+    <div class="form-group">
+      <label class="form-label">Alasan Penolakan</label>
+      <textarea id="tolak-alasan" placeholder="Tulis alasan penolakan..." rows="3"></textarea>
+    </div>
+    <div style="display:flex;gap:.5rem;justify-content:flex-end;margin-top:1rem">
+      <button class="btn btn-sm" onclick="closeTolakPopup()">Batal</button>
+      <button class="btn btn-sm btn-danger" onclick="submitTolak()">✗ Tolak Izin</button>
+    </div>
+  </div>
+</div>
+
 
 <!-- ═══════════════════════════════════════════════════════════════════════════
      LOGIN SCREEN
@@ -1918,7 +1934,11 @@ async function loadAbsenList(){
         <div style="font-size:13px;font-weight:500;color:var(--text)">${r.alasan||'—'}</div>
         <div style="font-size:11px;color:var(--text3);margin-top:2px">Diajukan: ${fmtDT(r.created_at)}</div>
       </div>
-      <span class="badge b-neon" style="font-size:10px">Diajukan</span>
+      ${r.status==='approved'
+          ? `<span class="badge b-neon" style="font-size:10px">✓ Disetujui</span>`
+          : r.status==='ditolak'
+          ? `<span class="badge b-danger" style="font-size:10px" title="${r.alasan_tolak||''}">✗ Ditolak</span>`
+          : `<span class="badge b-warn" style="font-size:10px">⏳ Menunggu</span>`}
     </div>`).join('');
 }
 
@@ -2003,7 +2023,12 @@ async function loadAbsenAll(){
           <div style="display:flex;align-items:center;gap:10px;padding:7px 10px;background:var(--bg3);border:1px solid var(--border);border-radius:var(--r);margin-bottom:4px">
             <span style="font-family:var(--font-head);font-size:12px;font-weight:600;color:var(--accent2);min-width:52px">${r.hari}</span>
             <span style="font-size:12px;color:var(--text2);flex:1">${fmtDate(r.tanggal_libur)} — ${r.alasan}</span>
-            ${(s.role==='owner')?`<button class="btn btn-sm btn-danger" style="font-size:10px;padding:3px 8px" onclick="deleteAbsen('${r.id}')">Hapus</button>`:''}
+            ${(s.role==='owner'||s.role==='admin')?`
+              <span class="badge ${r.status==='approved'?'b-neon':r.status==='ditolak'?'b-danger':'b-warn'}" style="font-size:10px;flex-shrink:0">${r.status==='approved'?'✓ Disetujui':r.status==='ditolak'?'✗ Ditolak':'⏳ Pending'}</span>
+              ${r.status!=='approved'?`<button class="btn btn-sm btn-neon" style="font-size:10px;padding:3px 8px" title="Setujui" onclick="approveAbsen('${r.id}','${r.crew_name}','${r.tanggal_libur}')">✓</button>`:''}
+              ${r.status!=='ditolak'?`<button class="btn btn-sm btn-danger" style="font-size:10px;padding:3px 8px" title="Tolak" onclick="showTolakAbsen('${r.id}','${r.crew_name}','${r.tanggal_libur}')">✗</button>`:''}
+              ${s.role==='owner'?`<button class="btn btn-sm" style="font-size:10px;padding:3px 6px;color:var(--text3)" title="Hapus" onclick="deleteAbsen('${r.id}')">🗑</button>`:''}
+            `:''}
           </div>`).join('')}
       </div>`).join('');
   }catch(e){
@@ -2052,6 +2077,48 @@ async function loadDashLibur(){
     listEl.innerHTML='<div class="empty" style="padding:1rem">—</div>';
     if(countEl) countEl.textContent='—';
   }
+}
+
+// ─── APPROVAL ABSEN ───────────────────────────────────────────────────────────
+async function approveAbsen(id, crewName, tanggal){
+  const s = getSession();
+  if(!s||!(s.role==='owner'||s.role==='admin')){ toast('Akses ditolak','error'); return; }
+  try{
+    await dbPatch('crew_absen','id=eq.'+id,{ status:'approved', alasan_tolak:null });
+    await addLog('Izin disetujui: '+crewName+' tanggal '+fmtDate(tanggal)+' (oleh '+s.name+')');
+    toast('Izin '+crewName+' disetujui ✓','success');
+    loadAbsenAll();
+    loadAbsenList();
+  }catch(e){ toast('Gagal approve: '+e.message,'error'); }
+}
+
+let _tolakId = null;
+function showTolakAbsen(id, crewName, tanggal){
+  _tolakId = id;
+  document.getElementById('tolak-info').textContent = crewName+' · '+fmtDate(tanggal);
+  document.getElementById('tolak-alasan').value = '';
+  document.getElementById('tolak-bg').style.display = 'flex';
+  setTimeout(()=>document.getElementById('tolak-alasan').focus(),100);
+}
+function closeTolakPopup(){
+  document.getElementById('tolak-bg').style.display = 'none';
+  _tolakId = null;
+}
+async function submitTolak(){
+  if(!_tolakId){ closeTolakPopup(); return; }
+  const s = getSession();
+  if(!s||!(s.role==='owner'||s.role==='admin')){ toast('Akses ditolak','error'); return; }
+  const alasan = document.getElementById('tolak-alasan').value.trim();
+  if(!alasan){ toast('Isi alasan penolakan dulu!','warn'); return; }
+  const info = document.getElementById('tolak-info').textContent;
+  try{
+    await dbPatch('crew_absen','id=eq.'+_tolakId,{ status:'ditolak', alasan_tolak: alasan });
+    await addLog('Izin ditolak: '+info+' — "'+alasan+'" (oleh '+s.name+')');
+    toast('Izin ditolak','info');
+    closeTolakPopup();
+    loadAbsenAll();
+    loadAbsenList();
+  }catch(e){ toast('Gagal tolak: '+e.message,'error'); }
 }
 
 // ─── INIT ─────────────────────────────────────────────────────────────────────
