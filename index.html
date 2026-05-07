@@ -1388,8 +1388,8 @@ async function loadAllSchedules(){
   listEl.innerHTML='<div class="loading"><div class="spinner"></div>Memuat jadwal...</div>';
   try{
     const [bookings, slots] = await Promise.all([
-      db('bookings',{filter:'&shoot_date=not.is.null',select:'id,name,session_type,package,status,shoot_date',order:'shoot_date.asc',limit:500}),
-      db('slots',{order:'slot_date.asc,slot_time.asc',limit:500})
+      db('bookings',{filter:`&shoot_date=gte.${today()}&shoot_date=not.is.null`,select:'id,name,session_type,package,status,shoot_date',order:'shoot_date.asc',limit:500}),
+      db('slots',{filter:`&slot_date=gte.${today()}`,order:'slot_date.asc,slot_time.asc',limit:500})
     ]);
 
     if(!bookings.length && !slots.length){
@@ -1419,7 +1419,6 @@ async function loadAllSchedules(){
     sortedDates.forEach(d=>{
       const group = byDate[d];
       const isToday = d === todayStr;
-      const isPast = d < todayStr;
 
       // Format tanggal header
       const dateObj = new Date(d+'T00:00:00');
@@ -1428,7 +1427,6 @@ async function loadAllSchedules(){
       const dayLabel = dayNames[dateObj.getDay()];
       const dateLabel = `${dateObj.getDate()} ${monthNames[dateObj.getMonth()]} ${dateObj.getFullYear()}`;
       const todayBadge = isToday ? '<span class="badge b-neon" style="font-size:9px;margin-left:6px">HARI INI</span>' : '';
-      const pastStyle = isPast && !isToday ? 'opacity:.5' : '';
 
       // Build slot map by client name for this date
       const slotByName = {};
@@ -1438,9 +1436,9 @@ async function loadAllSchedules(){
       });
       const usedSlotIds = new Set();
 
-      html+=`<div style="margin-bottom:1rem;${pastStyle}">
+      html+=`<div style="margin-bottom:1rem;">
         <div style="display:flex;align-items:center;gap:6px;padding:6px 10px;background:var(--bg3);border:1px solid var(--border${isToday?'2':''});border-radius:var(--r);margin-bottom:6px${isToday?';border-color:rgba(57,224,155,.35)':''}">
-          <span style="font-family:var(--font-head);font-size:12px;font-weight:700;color:${isToday?'var(--neon)':isPast?'var(--text3)':'var(--accent2)'}">${dayLabel}, ${dateLabel}</span>
+          <span style="font-family:var(--font-head);font-size:12px;font-weight:700;color:${isToday?'var(--neon)':'var(--accent2)'}">${dayLabel}, ${dateLabel}</span>
           ${todayBadge}
           <span class="badge b-gray" style="margin-left:auto;font-size:9px">${group.bookings.length + group.slots.filter(s=>!group.bookings.find(b=>(b.name||'').toLowerCase().trim()===(s.client_name||'').toLowerCase().trim())).length} jadwal</span>
         </div>`;
