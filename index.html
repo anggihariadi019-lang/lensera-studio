@@ -778,13 +778,17 @@ function addStaff(){
   if(!name){ toast('Isi nama pegawai!','error'); return; }
   if(!pin || pin.length < 4){ toast('PIN minimal 4 digit!','error'); return; }
   if(!/^\d+$/.test(pin)){ toast('PIN hanya angka!','error'); return; }
-  if(name.toLowerCase() === 'owner'){ toast('Nama "owner" tidak boleh digunakan!','error'); return; }
+  // Cek konflik dengan nama owner
+  if(OWNERS.find(o=>o.name.toLowerCase()===name.toLowerCase())||name.toLowerCase()==='owner'){
+    toast('Nama "'+name+'" tidak boleh digunakan karena sudah dipakai owner!','error'); return;
+  }
   const list = getStaffList();
   if(list.find(s=>s.name.toLowerCase()===name.toLowerCase())){ toast('Nama sudah terdaftar!','error'); return; }
   list.push({name, pin, role});
   saveStaffList(list);
   document.getElementById('new-staff-name').value='';
   document.getElementById('new-staff-pin').value='';
+  document.getElementById('new-staff-role').value='admin';
   toast('Pegawai '+name+' ('+role+') berhasil ditambahkan!','success');
   renderStaffList();
 }
@@ -1861,8 +1865,11 @@ function initAbsenPage(){
   const tgl = document.getElementById('absen-tanggal');
   if(tgl && !tgl.value) tgl.value = today();
 
-  // Set hari otomatis sesuai tanggal
-  if(tgl) tgl.addEventListener('change', syncAbsenHari);
+  // Set hari otomatis sesuai tanggal (hanya tambah listener sekali)
+  if(tgl && !tgl.dataset.hariListenerAdded){
+    tgl.addEventListener('change', syncAbsenHari);
+    tgl.dataset.hariListenerAdded = '1';
+  }
   syncAbsenHari();
 
   // Sembunyikan/tampilkan bagian "semua pengajuan" sesuai role
@@ -1978,7 +1985,6 @@ async function submitAbsen(){
     toast('Kamu sudah mengajukan izin untuk tanggal ini!','warn');
     return;
   }
-
   const btn = document.getElementById('absen-submit-btn');
   btn.textContent='Menyimpan...'; btn.disabled=true;
   try{
@@ -1987,6 +1993,7 @@ async function submitAbsen(){
       hari,
       tanggal_libur: tanggal,
       alasan,
+      status: 'pending',
       created_at: new Date().toISOString()
     });
     await addLog('Izin libur: '+nama+' tanggal '+fmtDate(tanggal)+' ('+hari+') — '+alasan);
