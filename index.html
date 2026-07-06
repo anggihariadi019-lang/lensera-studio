@@ -1171,8 +1171,22 @@ async function loadProjects(){
     let all=await db('bookings',{filter,order:'created_at.desc'});
     if(search) all=all.filter(p=>p.name.toLowerCase().includes(search));
     if(!all.length){ document.getElementById('proj-list').innerHTML='<div class="empty">Tidak ada project ditemukan.</div>'; return; }
+
+    // FIX bug #2 (jam shoot hilang saat edit): tabel `bookings` tidak punya kolom shoot_time,
+    // jam shoot yang sebenarnya disimpan di tabel `slots` (matching nama client + tanggal).
+    // Ambil semua slot sekali di sini supaya panel "✎ Edit" bisa prefill jam yang sudah ada.
+    let slotByKey={};
+    try{
+      const slotsAll = await db('slots',{select:'client_name,slot_date,slot_time',limit:1000});
+      slotsAll.forEach(s=>{
+        const key=(s.slot_date||'')+'|'+(s.client_name||'').toLowerCase().trim();
+        if(key.length>1) slotByKey[key]=normalizeTime(s.slot_time);
+      });
+    }catch(e){ console.error('[loadProjects] gagal ambil data jam (slots):', e); }
+
     let html='';
     all.forEach(p=>{
+      const existingShootTime = p.shoot_date ? (slotByKey[p.shoot_date+'|'+(p.name||'').toLowerCase().trim()]||'') : '';
       const pct=Math.round((p.status/Math.max(STAGES.length-1,1))*100);
       const delayed=isDelay(p);
       const pills=STAGES.map((s,i)=>`<span class="stage-pill ${i<p.status?'done':i===p.status?'current':''}">${s.split(' ')[0]}</span>`).join('');
@@ -1226,7 +1240,7 @@ async function loadProjects(){
             </div>
             <div>
               <div style="font-size:11px;color:var(--text3);margin-bottom:4px;text-transform:uppercase;letter-spacing:.5px">Jam Shoot</div>
-              <input type="time" id="ep-stime-${p.id}" value="" style="font-size:12px;padding:6px 10px">
+              <input type="time" id="ep-stime-${p.id}" value="${existingShootTime}" style="font-size:12px;padding:6px 10px">
             </div>
             <div>
               <div style="font-size:11px;color:var(--text3);margin-bottom:4px;text-transform:uppercase;letter-spacing:.5px">Link File Preset</div>
@@ -1277,6 +1291,24 @@ function toggleEditPanel(id){
   panel.style.display=panel.style.display==='none'?'block':'none';
 }
 
+// FIX bug #2: tabel `bookings` tidak punya kolom shoot_time, jadi jam shoot
+// disimpan/diupdate di tabel `slots` (matching client_name + slot_date) — sama
+// seperti mekanisme "Set Jam" di halaman Jadwal. Kalau jam dikosongkan, slot
+// lama yang cocok akan dihapus supaya tidak nyangkut/nampilin jam basi.
+async function upsertShootTime(clientName, shootDate, shootTime){
+  if(!clientName || !shootDate) return; // tidak bisa kelola slot tanpa nama & tanggal
+  const existing = await db('slots',{filter:`&slot_date=eq.${shootDate}&client_name=eq.${encodeURIComponent(clientName)}`,select:'id'});
+  if(shootTime){
+    if(existing && existing.length){
+      await dbPatch('slots','id=eq.'+existing[0].id,{slot_time:shootTime});
+    } else {
+      await dbPost('slots',{slot_date:shootDate,slot_time:shootTime,client_name:clientName});
+    }
+  } else if(existing && existing.length){
+    await dbDelete('slots','id=eq.'+existing[0].id);
+  }
+}
+
 async function saveEditPanel(id){
   const session_type=document.getElementById('ep-type-'+id).value;
   const pkg=document.getElementById('ep-pkg-'+id).value;
@@ -1287,9 +1319,22 @@ async function saveEditPanel(id){
   const file_numbers=document.getElementById('ep-filenums-'+id).value;
   const notes=document.getElementById('ep-notes-'+id).value;
   try{
+    // Ambil nama client terbaru langsung dari server (bukan dari DOM/innerHTML) —
+    // lebih aman dari karakter aneh (kutip, dll) dan pasti akurat untuk matching slot.
+    const rows=await db('bookings',{filter:'id=eq.'+id,select:'name'});
+    const clientName=(rows && rows[0] && rows[0].name) || '';
+
     await dbPatch('bookings','id=eq.'+id,{session_type,package:pkg,shoot_date,file_link_preset,file_link,file_numbers,notes,last_updated:new Date().toISOString()});
 
-    await addLog('Info diperbarui: '+session_type+' · '+pkg+(shoot_date?' · Shoot: '+fmtDate(shoot_date):'')+' (ID '+id.slice(0,8)+')');
+    // FIX bug #2: jam shoot sekarang benar-benar disimpan (ke tabel slots)
+    try{
+      await upsertShootTime(clientName, shoot_date, shoot_time);
+    }catch(e){
+      console.error('[saveEditPanel] gagal simpan jam shoot:', e);
+      toast('Info tersimpan, tapi jam shoot gagal disimpan: '+e.message,'error');
+    }
+
+    await addLog('Info diperbarui: '+session_type+' · '+pkg+(shoot_date?' · Shoot: '+fmtDate(shoot_date)+(shoot_time?' '+shoot_time:''):'')+' (ID '+id.slice(0,8)+')');
     toast('Perubahan berhasil disimpan!','success');
     loadProjects();
   }catch(e){ toast('Gagal menyimpan: '+e.message,'error'); }
