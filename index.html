@@ -374,6 +374,9 @@ Jumlah DP/LUNAS : dp 100.000"></textarea>
             <div class="form-group"><label class="form-label">Tanggal Booking</label><input type="date" id="iwa-bdate"></div>
             <div class="form-group"><label class="form-label">Tanggal Foto</label><input type="date" id="iwa-sdate" onchange="checkShootDateConflict('iwa-sdate')"></div>
           </div>
+          <div class="form-row">
+            <div class="form-group"><label class="form-label">Jam Foto</label><input type="time" id="iwa-stime"></div>
+          </div>
           <div class="form-group"><label class="form-label">Jenis Acara / Tipe Sesi</label><select id="iwa-type"></select></div>
           <div class="form-group"><label class="form-label">Paket</label><select id="iwa-pkg"></select></div>
           <div id="iwa-conflict-warn" style="display:none;background:rgba(240,161,74,.08);border:1px solid rgba(240,161,74,.25);border-radius:var(--r);padding:.65rem .875rem;margin-bottom:.875rem;font-size:12px;color:var(--warn)"></div>
@@ -1829,11 +1832,13 @@ async function parseWaText(){
   const dp      = parseWaGet(working,'Jumlah\\s*DP\\s*\\/\\s*LUNAS');
 
   const shootDate = parseWaDate(tglFoto);
+  const shootTime = parseWaTime(jamFoto);
 
   document.getElementById('iwa-name').value  = nama||'';
   document.getElementById('iwa-phone').value = noWa?noWa.replace(/[^0-9+]/g,''):'';
   document.getElementById('iwa-bdate').value = today();
   document.getElementById('iwa-sdate').value = shootDate||'';
+  document.getElementById('iwa-stime').value = shootTime||'';
 
   const typeEl=document.getElementById('iwa-type');
   if(jenis&&typeEl){
@@ -1860,6 +1865,7 @@ async function parseWaText(){
   if(!noWa)     warns.push('⚠ No. WA tidak terbaca');
   if(!tglFoto)  warns.push('⚠ Tanggal Foto tidak terbaca');
   if(!shootDate&&tglFoto) warns.push('⚠ Format tanggal tidak dikenali (contoh: 20 mei 2026)');
+  if(!shootTime&&jamFoto) warns.push('⚠ Format jam tidak dikenali — isi manual di field Jam Foto');
   const warnEl=document.getElementById('iwa-warnings');
   warnEl.style.display=warns.length?'block':'none';
   warnEl.innerHTML=warns.join('<br>');
@@ -1881,7 +1887,9 @@ async function submitImportWa(){
   btn.textContent='Menyimpan...'; btn.disabled=true;
   try{
     const sdate=document.getElementById('iwa-sdate').value||null;
-    const stime=null;
+    // FIX bug #4: sebelumnya stime di-hardcode null padahal jamFoto sudah berhasil
+    // di-parse dari teks WA — sekarang benar-benar dibaca dari field "Jam Foto".
+    const stime=document.getElementById('iwa-stime').value||null;
     const data={
       name,
       phone:       document.getElementById('iwa-phone').value,
@@ -1895,8 +1903,11 @@ async function submitImportWa(){
     };
     await dbPost('bookings',data);
     await addLog('Booking import WA: '+name+' ('+data.session_type+')'+(sdate?' · Shoot: '+fmtDate(sdate)+(stime?' '+stime:''):''));
+    // Jam disimpan ke tabel slots (bookings tidak punya kolom shoot_time) lewat
+    // upsertShootTime, sama seperti mekanisme di panel Edit Projects (fix bug #2).
     if(sdate&&stime){
-      try{ await dbPost('slots',{slot_date:sdate,slot_time:stime,client_name:name}); }catch(e){}
+      try{ await upsertShootTime(name, sdate, stime); }
+      catch(e){ console.error('[submitImportWa] gagal simpan jam:', e); toast('Booking tersimpan, tapi jam gagal disimpan: '+e.message,'error'); }
     }
     toast('✓ Booking '+name+' berhasil disimpan!','success');
     document.getElementById('iwa-raw').value='';
