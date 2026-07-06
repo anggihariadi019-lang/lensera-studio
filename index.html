@@ -626,36 +626,50 @@ const OWNERS = [
   {name:'galih', pin:'1234',  displayName:'Galih'},
 ];
 
-function getStaffList(){
+// ─── STAFF: SUMBER KEBENARAN = SUPABASE (localStorage cuma cache offline) ────
+// FIX BUG UTAMA: sebelumnya staff list disimpan di localStorage dan dianggap
+// sumber kebenaran, cloud cuma "backup" yang ditimpa mentah-mentah. Kalau ada
+// 2 device/browser beda nambah staff sendiri-sendiri, device yang belakangan
+// nambah akan menimpa (overwrite) staff yang ditambahkan device lain -> hilang.
+// Sekarang: setiap kali mau ubah data staff (tambah/hapus/reset pin), kita
+// SELALU tarik dulu list TERBARU dari cloud, baru terapkan perubahan di atas
+// list itu, baru simpan balik. localStorage cuma dipakai sebagai cache biar
+// render cepat / fallback kalau offline.
+
+function getStaffListCache(){
   try{ return JSON.parse(localStorage.getItem('lensera_staff')||'[]'); }catch(e){ return []; }
 }
-function saveStaffList(list){
+function setStaffListCache(list){
   localStorage.setItem('lensera_staff',JSON.stringify(list));
-  syncStaffToCloud(list).catch(()=>{});
 }
 
-async function syncStaffToCloud(list){
-  try{
-    const payload={config_key:'staff_list',config_value:JSON.stringify(list),updated_at:new Date().toISOString()};
-    const url=SB_URL+'/rest/v1/app_config?config_key=eq.staff_list';
-    const res=await fetch(url,{method:'PATCH',headers:{...H,'Prefer':'return=representation'},body:JSON.stringify(payload)});
-    const patched=await res.json();
-    if(!patched||!patched.length){ await dbPost('app_config',payload); }
-  }catch(e){}
-}
-
-async function restoreStaffFromCloud(){
+// Ambil list staff TERBARU langsung dari cloud (selalu, bukan cuma kalau cache kosong)
+async function fetchStaffFromCloud(){
   try{
     const rows=await db('app_config',{filter:'&config_key=eq.staff_list',select:'config_value'});
     if(rows&&rows.length&&rows[0].config_value){
       const list=JSON.parse(rows[0].config_value);
-      if(Array.isArray(list)&&list.length){
-        localStorage.setItem('lensera_staff',JSON.stringify(list));
+      if(Array.isArray(list)){
+        setStaffListCache(list); // sinkronkan cache lokal biar konsisten
         return list;
       }
     }
-  }catch(e){}
-  return [];
+    return [];
+  }catch(e){
+    // Gagal konek cloud -> fallback ke cache lokal (lebih baik daripada dobel-hilang data)
+    toast('Gagal ambil data pegawai terbaru dari server, pakai data lokal sementara.','warn');
+    return getStaffListCache();
+  }
+}
+
+// Simpan list staff ke cloud (sumber kebenaran) + update cache lokal
+async function saveStaffListToCloud(list){
+  setStaffListCache(list);
+  const payload={config_key:'staff_list',config_value:JSON.stringify(list),updated_at:new Date().toISOString()};
+  const url=SB_URL+'/rest/v1/app_config?config_key=eq.staff_list';
+  const res=await fetch(url,{method:'PATCH',headers:{...H,'Prefer':'return=representation'},body:JSON.stringify(payload)});
+  const patched=await res.json();
+  if(!patched||!patched.length){ await dbPost('app_config',payload); }
 }
 
 function getSession(){
@@ -692,14 +706,13 @@ async function doLogin(){
     return;
   }
 
-  // Cek staff — kalau localStorage kosong, coba restore dari Supabase dulu
-  let staff = getStaffList();
-  if(!staff.length){
-    const btn = document.querySelector('#login-screen .btn-primary');
-    if(btn){ btn.textContent='Mengecek...'; btn.disabled=true; }
-    staff = await restoreStaffFromCloud();
-    if(btn){ btn.textContent='Masuk →'; btn.disabled=false; }
-  }
+  // Cek staff — SELALU tarik dari cloud dulu (bukan cuma kalau localStorage kosong),
+  // supaya staff yang ditambahkan dari device lain tetap bisa login di device ini.
+  const btn = document.querySelector('#login-screen .btn-primary');
+  if(btn){ btn.textContent='Mengecek...'; btn.disabled=true; }
+  const staff = await fetchStaffFromCloud();
+  if(btn){ btn.textContent='Masuk →'; btn.disabled=false; }
+
   const found = staff.find(s => s.name.toLowerCase() === name && s.pin === pin);
   if(found){
     saveSession(found.name, found.role);
@@ -754,10 +767,15 @@ function doLogout(){
 }
 
 // ─── STAFF MANAGEMENT ────────────────────────────────────────────────────────
-function renderStaffList(){
-  const list = getStaffList();
-  document.getElementById('staff-count').textContent = list.length + ' pegawai';
+// FIX: render dan semua aksi (tambah/hapus/reset pin) sekarang SELALU narik
+// data staff terbaru dari cloud dulu sebelum menampilkan/mengubah, supaya
+// tidak ada perubahan dari device lain yang ketimpa/hilang.
+
+async function renderStaffList(){
   const el = document.getElementById('staff-list');
+  el.innerHTML = '<div class="loading"><div class="spinner"></div>Memuat...</div>';
+  const list = await fetchStaffFromCloud();
+  document.getElementById('staff-count').textContent = list.length + ' pegawai';
   if(!list.length){ el.innerHTML='<div class="empty" style="padding:1rem">Belum ada pegawai. Tambahkan di bawah.</div>'; return; }
   el.innerHTML = list.map((s,i)=>`
     <div style="display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--border)">
@@ -771,7 +789,7 @@ function renderStaffList(){
     </div>`).join('');
 }
 
-function addStaff(){
+async function addStaff(){
   const name = document.getElementById('new-staff-name').value.trim();
   const pin  = document.getElementById('new-staff-pin').value.trim();
   const role = document.getElementById('new-staff-role').value;
@@ -782,35 +800,60 @@ function addStaff(){
   if(OWNERS.find(o=>o.name.toLowerCase()===name.toLowerCase())||name.toLowerCase()==='owner'){
     toast('Nama "'+name+'" tidak boleh digunakan karena sudah dipakai owner!','error'); return;
   }
-  const list = getStaffList();
-  if(list.find(s=>s.name.toLowerCase()===name.toLowerCase())){ toast('Nama sudah terdaftar!','error'); return; }
-  list.push({name, pin, role});
-  saveStaffList(list);
-  document.getElementById('new-staff-name').value='';
-  document.getElementById('new-staff-pin').value='';
-  document.getElementById('new-staff-role').value='admin';
-  toast('Pegawai '+name+' ('+role+') berhasil ditambahkan!','success');
-  renderStaffList();
+
+  const addBtn = document.querySelector('#staff-management-card .btn-primary');
+  if(addBtn){ addBtn.disabled=true; addBtn.textContent='Menyimpan...'; }
+  try{
+    // PENTING: tarik list TERBARU dari cloud dulu sebelum menambah, supaya
+    // staff yang ditambahkan dari device/browser lain tidak ketimpa hilang.
+    const list = await fetchStaffFromCloud();
+    if(list.find(s=>s.name.toLowerCase()===name.toLowerCase())){ toast('Nama sudah terdaftar!','error'); return; }
+    list.push({name, pin, role});
+    await saveStaffListToCloud(list);
+    document.getElementById('new-staff-name').value='';
+    document.getElementById('new-staff-pin').value='';
+    document.getElementById('new-staff-role').value='admin';
+    toast('Pegawai '+name+' ('+role+') berhasil ditambahkan!','success');
+    renderStaffList();
+  }catch(e){
+    toast('Gagal menyimpan pegawai: '+e.message,'error');
+  }finally{
+    if(addBtn){ addBtn.disabled=false; addBtn.textContent='+ Tambah'; }
+  }
 }
 
-function deleteStaff(i){
-  const list = getStaffList();
-  showModal('Hapus Pegawai','Hapus akses "'+list[i].name+'"? Mereka tidak bisa login lagi.',()=>{
-    list.splice(i,1);
-    saveStaffList(list);
-    toast('Pegawai dihapus','info');
-    renderStaffList();
+async function deleteStaff(i){
+  // Tarik ulang list terbaru dari cloud dulu supaya index i sesuai data terkini
+  const list = await fetchStaffFromCloud();
+  if(!list[i]) { toast('Data pegawai sudah berubah, coba refresh dulu.','warn'); renderStaffList(); return; }
+  showModal('Hapus Pegawai','Hapus akses "'+list[i].name+'"? Mereka tidak bisa login lagi.',async()=>{
+    try{
+      const freshList = await fetchStaffFromCloud();
+      const idx = freshList.findIndex(s=>s.name===list[i].name);
+      if(idx===-1){ toast('Pegawai sudah tidak ada.','warn'); renderStaffList(); return; }
+      freshList.splice(idx,1);
+      await saveStaffListToCloud(freshList);
+      toast('Pegawai dihapus','info');
+      renderStaffList();
+    }catch(e){ toast('Gagal hapus: '+e.message,'error'); }
   });
 }
 
-function resetStaffPin(i){
-  const list = getStaffList();
+async function resetStaffPin(i){
+  const list = await fetchStaffFromCloud();
+  if(!list[i]) { toast('Data pegawai sudah berubah, coba refresh dulu.','warn'); renderStaffList(); return; }
   const newPin = prompt('PIN baru untuk '+list[i].name+' (4-8 angka):');
   if(!newPin) return;
   if(newPin.length < 4 || !/^\d+$/.test(newPin)){ toast('PIN tidak valid!','error'); return; }
-  list[i].pin = newPin;
-  saveStaffList(list);
-  toast('PIN '+list[i].name+' berhasil direset!','success');
+  try{
+    const freshList = await fetchStaffFromCloud();
+    const idx = freshList.findIndex(s=>s.name===list[i].name);
+    if(idx===-1){ toast('Pegawai sudah tidak ada.','warn'); renderStaffList(); return; }
+    freshList[idx].pin = newPin;
+    await saveStaffListToCloud(freshList);
+    toast('PIN '+freshList[idx].name+' berhasil direset!','success');
+    renderStaffList();
+  }catch(e){ toast('Gagal reset PIN: '+e.message,'error'); }
 }
 
 const SB_URL = 'https://wlfvrlnuvyplfdlyxqif.supabase.co';
