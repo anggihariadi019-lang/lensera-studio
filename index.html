@@ -1085,10 +1085,28 @@ async function loadDashTodaySchedule(){
       db('slots',{filter:`&slot_date=eq.${t}`,order:'slot_time.asc'})
     ]);
 
+    // FIX bug #3 (jam shoot dobel di Dashboard): cocokkan slot ke booking lewat
+    // nama client (sama seperti loadSlots() di halaman Jadwal), lalu tandai slot
+    // yang sudah "dipakai" booking supaya tidak ikut ditampilkan lagi sebagai
+    // entry "Slot Manual" terpisah untuk klien yang sama.
+    const slotByName = {};
+    slots.forEach(s=>{
+      const key = (s.client_name||'').toLowerCase().trim();
+      if(key && !slotByName[key]) slotByName[key] = s;
+    });
+    const usedSlotIds = new Set();
+
     const items = [];
-    // Normalize shoot_time saat membaca dari bookings
-    bookings.forEach(b=>{ items.push({time:'--:--',name:b.name,type:'booking',info:b.session_type||'',pkg:b.package||'',status:b.status}); });
-    slots.forEach(s=>{ items.push({time:normalizeTime(s.slot_time)||'--:--',name:s.client_name,type:'slot',info:'Slot Manual',pkg:''}); });
+    bookings.forEach(b=>{
+      const matchedSlot = slotByName[(b.name||'').toLowerCase().trim()];
+      const displayTime = matchedSlot ? (normalizeTime(matchedSlot.slot_time)||'--:--') : '--:--';
+      if(matchedSlot) usedSlotIds.add(matchedSlot.id);
+      items.push({time:displayTime,name:b.name,type:'booking',info:b.session_type||'',pkg:b.package||'',status:b.status});
+    });
+    // Slot manual: hanya yang belum "diklaim" oleh booking di atas
+    slots.filter(s=>!usedSlotIds.has(s.id)).forEach(s=>{
+      items.push({time:normalizeTime(s.slot_time)||'--:--',name:s.client_name,type:'slot',info:'Slot Manual',pkg:''});
+    });
     items.sort((a,b)=>a.time.localeCompare(b.time));
 
     if(!items.length){
