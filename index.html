@@ -446,7 +446,9 @@ Jumlah DP/LUNAS : dp 100.000"></textarea>
         <div id="confirmed-list"><div class="loading"><div class="spinner"></div>Memuat jadwal...</div></div>
       </div>
 
-      <!-- (elemen slot-grid/slot-date-label lama sudah dihapus — fix bug #9, dead code) -->
+      <!-- hidden elemen agar fungsi lama tidak error -->
+      <div id="slot-date-label" style="display:none"></div>
+      <div id="slot-grid" style="display:none"></div>
     </div>
 
     <!-- ABSEN CREW -->
@@ -748,20 +750,10 @@ function startApp(name, role){
   if(staffCard) staffCard.style.display = role==='owner'?'block':'none';
 }
 
-async function initAppData(){
+function initAppData(){
   // Dipanggil setelah semua fungsi didefinisikan
   const bdateEl = document.getElementById('f-bdate');
   if(bdateEl) bdateEl.value = today();
-  // FIX BUG #5: tarik Sesi/Paket/STAGES fresh dari cloud tiap login, supaya
-  // device ini gak pakai definisi lama/beda dari device lain (khususnya STAGES,
-  // karena status project cuma nyimpen index angka yang merujuk ke urutan ini).
-  try{
-    await Promise.all([
-      fetchSesiFromCloud(),
-      fetchPaketFromCloud(),
-      fetchStagesFromCloud().then(list=>{ STAGES=list; })
-    ]);
-  }catch(e){ /* fallback ke cache lokal sudah ditangani di masing-masing fetch */ }
   if(typeof refreshSesiDropdowns==='function') refreshSesiDropdowns();
   if(typeof refreshPaketDropdowns==='function') refreshPaketDropdowns();
   if(typeof refreshStagesDropdowns==='function') refreshStagesDropdowns();
@@ -874,34 +866,6 @@ const DEFAULT_STAGES = ['Booking Tanggal','Edit Preset','Konfirmasi Pilih Foto',
 function getStages(){ try{ return JSON.parse(localStorage.getItem('lensera_stages')||'null')||DEFAULT_STAGES.slice(); }catch(e){ return DEFAULT_STAGES.slice(); } }
 function saveStages(list){ localStorage.setItem('lensera_stages',JSON.stringify(list)); }
 let STAGES = getStages();
-
-// ─── FIX BUG #5: STAGES/SESI/PAKET dulu 100% localStorage, gak sync antar device.
-// Bahaya khusus STAGES: status project disimpan sebagai index angka yang merujuk
-// ke urutan STAGES — kalau STAGES beda antar device, status project bisa salah
-// total. Sekarang pakai pola sama seperti fix staff: app_config di Supabase jadi
-// sumber kebenaran, localStorage cuma cache. Setiap render/ubah SELALU tarik dulu
-// data terbaru dari cloud.
-async function fetchStagesFromCloud(){
-  try{
-    const rows=await db('app_config',{filter:'&config_key=eq.stages_list',select:'config_value'});
-    if(rows&&rows.length&&rows[0].config_value){
-      const list=JSON.parse(rows[0].config_value);
-      if(Array.isArray(list)&&list.length){ saveStages(list); return list; }
-    }
-    return getStages();
-  }catch(e){
-    toast('Gagal ambil tahap workflow terbaru dari server, pakai data lokal sementara.','warn');
-    return getStages();
-  }
-}
-async function saveStagesToCloud(list){
-  saveStages(list);
-  const payload={config_key:'stages_list',config_value:JSON.stringify(list),updated_at:new Date().toISOString()};
-  const url=SB_URL+'/rest/v1/app_config?config_key=eq.stages_list';
-  const res=await fetch(url,{method:'PATCH',headers:{...H,'Prefer':'return=representation'},body:JSON.stringify(payload)});
-  const patched=await res.json();
-  if(!patched||!patched.length){ await dbPost('app_config',payload); }
-}
 
 // ─── SUPABASE HELPER ─────────────────────────────────────────────────────────
 const H = {'Content-Type':'application/json','apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY};
@@ -1352,9 +1316,6 @@ function toggleEditPanel(id){
 // disimpan/diupdate di tabel `slots` (matching client_name + slot_date) — sama
 // seperti mekanisme "Set Jam" di halaman Jadwal. Kalau jam dikosongkan, slot
 // lama yang cocok akan dihapus supaya tidak nyangkut/nampilin jam basi.
-// Escape string biar aman ditaruh di dalam onclick='...' (single-quoted JS string)
-function escJs(str){ return String(str||'').replace(/\\/g,'\\\\').replace(/'/g,"\\'"); }
-
 async function upsertShootTime(clientName, shootDate, shootTime){
   if(!clientName || !shootDate) return; // tidak bisa kelola slot tanpa nama & tanggal
   const existing = await db('slots',{filter:`&slot_date=eq.${shootDate}&client_name=eq.${encodeURIComponent(clientName)}`,select:'id'});
@@ -1417,6 +1378,90 @@ async function deleteProject(id,name){
 }
 
 // ─── SCHEDULE ────────────────────────────────────────────────────────────────
+async function loadSlots(){
+  const d = document.getElementById('slot-date').value;
+  const label = fmtDateLabel(d);
+  const lblEl = document.getElementById('slot-date-label');
+  if(lblEl) lblEl.textContent = d ? label : '';
+
+  if(!d){
+    document.getElementById('slot-grid').innerHTML='<div class="empty">Pilih tanggal untuk melihat jadwal</div>';
+    loadAllSchedules();
+    return;
+  }
+  document.getElementById('slot-grid').innerHTML='<div class="loading"><div class="spinner"></div>Memuat slot...</div>';
+  try{
+    const [bookings, slots] = await Promise.all([
+      db('bookings',{filter:`&shoot_date=eq.${d}`,select:'id,name,session_type,package,status'}),
+      db('slots',{filter:`&slot_date=eq.${d}`,order:'slot_time.asc'})
+    ]);
+
+    // Buat map slot berdasarkan client_name (lowercase) untuk matching dengan bookings
+    const slotByName = {};
+    slots.forEach(s=>{
+      const key = (s.client_name||'').toLowerCase().trim();
+      if(key && !slotByName[key]) slotByName[key] = s;
+    });
+    // Tandai slot mana yang sudah di-link ke booking (supaya tidak muncul dobel di slot manual)
+    const usedSlotIds = new Set();
+
+    let bookingHtml='';
+    if(bookings.length){
+      bookingHtml=`<div style="margin-bottom:.875rem">
+        <div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:.5rem;display:flex;align-items:center;gap:6px"><span style="width:6px;height:6px;border-radius:50%;background:var(--neon);display:inline-block"></span>Dari Data Booking</div>`;
+      bookings.forEach(b=>{
+        // Cari jam dari slots table berdasarkan nama client
+        const matchedSlot = slotByName[(b.name||'').toLowerCase().trim()];
+        const displayTime = matchedSlot ? normalizeTime(matchedSlot.slot_time) : null;
+        const timeDisplay = displayTime || '—';
+        const hasTime = !!displayTime;
+        if(matchedSlot) usedSlotIds.add(matchedSlot.id);
+        bookingHtml+=`<div class="sched-booking-item" id="sbi-${b.id}">
+          <span class="sched-time" style="${hasTime?'':'color:var(--text3);font-style:italic'}">${timeDisplay}</span>
+          <div style="flex:1"><div style="font-size:13px;color:var(--text);font-weight:500">${b.name}</div>
+          <div style="font-size:11px;color:var(--text3)">${b.session_type||''} · ${b.package||''}</div></div>
+          <div style="display:flex;align-items:center;gap:6px">
+            <span class="badge b-neon" style="font-size:10px">${STAGES[b.status]||'—'}</span>
+            <button class="btn btn-sm" style="padding:3px 8px;font-size:11px;color:var(--accent2);border-color:rgba(157,143,255,.3)" onclick="toggleSetJam('${b.id}','${displayTime||''}')">🕐 ${hasTime?'Edit':'Set'} Jam</button>
+          </div>
+        </div>
+        <div id="setjam-${b.id}" style="display:none;background:var(--bg3);border:1px solid var(--border);border-radius:var(--r);padding:.6rem .875rem;margin-bottom:.5rem;display:none">
+          <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+            <label style="font-size:11px;color:var(--text3)">Jam Shoot:</label>
+            <input type="time" id="setjam-input-${b.id}" value="${displayTime||''}" style="width:130px;font-size:13px;padding:5px 9px">
+            <button class="btn btn-sm btn-primary" style="padding:4px 12px;font-size:12px" onclick="saveJamBooking('${b.id}')">Simpan</button>
+            <button class="btn btn-sm" style="padding:4px 10px;font-size:12px" onclick="document.getElementById('setjam-${b.id}').style.display='none'">Batal</button>
+          </div>
+        </div>`;
+      });
+      bookingHtml+='</div>';
+    }
+
+    // Slot manual: hanya tampilkan slot yang TIDAK sudah dipakai oleh booking dari atas
+    const manualSlots = slots.filter(s=>!usedSlotIds.has(s.id));
+    let slotHtml='';
+    if(manualSlots.length){
+      slotHtml=`<div style="margin-bottom:.5rem">
+        <div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:.5rem;display:flex;align-items:center;gap:6px"><span style="width:6px;height:6px;border-radius:50%;background:var(--accent2);display:inline-block"></span>Slot Manual</div>`;
+      manualSlots.forEach(s=>{
+        const displayTime = normalizeTime(s.slot_time) || '—';
+        slotHtml+=`<div class="sched-manual-item">
+          <span class="sched-time manual">${displayTime}</span>
+          <span style="flex:1;font-size:13px;color:var(--text)">${s.client_name||'—'}</span>
+          <button class="btn btn-sm btn-danger" style="padding:3px 9px;font-size:11px" onclick="deleteSlot('${s.id}','${displayTime}','${(s.client_name||'').replace(/'/g,"\\'")}')">Hapus</button>
+        </div>`;
+      });
+      slotHtml+='</div>';
+    }
+
+    if(!bookings.length && !manualSlots.length){
+      document.getElementById('slot-grid').innerHTML='<div class="empty" style="padding:1.5rem">Belum ada jadwal untuk tanggal ini.<br><span style="font-size:11px">Tambahkan slot manual di atas.</span></div>';
+    } else {
+      document.getElementById('slot-grid').innerHTML = bookingHtml + slotHtml;
+    }
+    loadAllSchedules();
+  }catch(e){ toast('Gagal memuat slot: '+e.message,'error'); }
+}
 
 async function confirmSlot(){
   const d = document.getElementById('slot-date').value;
@@ -1440,6 +1485,11 @@ async function confirmSlot(){
       toast('Slot jam '+slotTime+' di tanggal ini sudah ada!','error');
     } else { toast('Gagal konfirmasi: '+e.message,'error'); }
   }
+}
+
+// Tetap ada loadConfirmedSlots (dipanggil internal dari loadSlots) — sekarang alias ke loadAllSchedules
+async function loadConfirmedSlots(){
+  await loadAllSchedules();
 }
 
 async function loadAllSchedules(){
@@ -1505,15 +1555,8 @@ async function loadAllSchedules(){
       // Bookings untuk tanggal ini
       group.bookings.forEach(b=>{
         const matchedSlot = slotByName[(b.name||'').toLowerCase().trim()];
-        const rawTime = matchedSlot ? normalizeTime(matchedSlot.slot_time) : null;
-        const displayTime = rawTime || '—';
+        const displayTime = matchedSlot ? (normalizeTime(matchedSlot.slot_time)||'—') : '—';
         if(matchedSlot) usedSlotIds.add(matchedSlot.id);
-        // FIX BUG #9: dulu satu-satunya UI buat set jam ("🕐 Set/Edit Jam") itu
-        // dead code (loadSlots(), gak pernah dipanggil, elemennya display:none).
-        // Sekarang tombolnya ditaruh langsung di sini — di loadAllSchedules(),
-        // fungsi yang benar-benar dipakai buat render halaman Jadwal — dan
-        // dipasang ulang pakai upsertShootTime() (fungsi yang sama dari fix
-        // bug #2), bukan logic lama yang scraping DOM buat cari nama client.
         html+=`<div style="display:flex;align-items:center;padding:8px 10px;border-bottom:1px solid var(--border);gap:8px">
           <span style="font-family:var(--font-head);font-size:12px;font-weight:600;color:var(--neon);min-width:46px">${displayTime}</span>
           <div style="flex:1">
@@ -1521,15 +1564,6 @@ async function loadAllSchedules(){
             <div style="font-size:11px;color:var(--text3)">${b.session_type||''}${b.package?' · '+b.package:''} · ${STAGES[b.status]||'—'}</div>
           </div>
           <span class="badge b-neon" style="font-size:9px;flex-shrink:0">Booking</span>
-          <button class="btn btn-sm" style="padding:3px 8px;font-size:11px;color:var(--accent2);border-color:rgba(157,143,255,.3);flex-shrink:0" onclick="toggleSetJamRow('${b.id}')">🕐 ${rawTime?'Edit':'Set'} Jam</button>
-        </div>
-        <div id="setjamrow-${b.id}" style="display:none;background:var(--bg3);border:1px solid var(--border);border-radius:var(--r);padding:.6rem .875rem;margin-bottom:6px">
-          <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
-            <label style="font-size:11px;color:var(--text3)">Jam Shoot untuk ${b.name}:</label>
-            <input type="time" id="setjamrow-input-${b.id}" value="${rawTime||''}" style="width:130px;font-size:13px;padding:5px 9px">
-            <button class="btn btn-sm btn-primary" style="padding:4px 12px;font-size:12px" onclick="saveJamRow('${b.id}','${d}','${escJs(b.name)}')">Simpan</button>
-            <button class="btn btn-sm" style="padding:4px 10px;font-size:12px" onclick="document.getElementById('setjamrow-${b.id}').style.display='none'">Batal</button>
-          </div>
         </div>`;
       });
 
@@ -1550,35 +1584,6 @@ async function loadAllSchedules(){
     listEl.innerHTML=html;
   }catch(e){
     listEl.innerHTML='<div class="empty">Gagal memuat jadwal: '+e.message+'</div>';
-  }
-}
-
-function toggleSetJamRow(bookingId){
-  const panel = document.getElementById('setjamrow-'+bookingId);
-  if(!panel) return;
-  const isHidden = panel.style.display==='none';
-  panel.style.display = isHidden?'block':'none';
-  if(isHidden){
-    const inp = document.getElementById('setjamrow-input-'+bookingId);
-    if(inp) inp.focus();
-  }
-}
-
-// FIX BUG #9: pakai upsertShootTime() (fungsi yang sama dari fix bug #2) supaya
-// konsisten — update slot yang sudah ada kalau ada, insert baru kalau belum,
-// hapus slot kalau field jam dikosongkan. clientName & date dikirim langsung
-// dari data yang sudah di-render (bukan scraping DOM), jadi lebih akurat.
-async function saveJamRow(bookingId, dateStr, clientName){
-  const inp = document.getElementById('setjamrow-input-'+bookingId);
-  if(!inp) return;
-  const t = inp.value;
-  const time = t ? t.slice(0,5) : null;
-  try{
-    await upsertShootTime(clientName, dateStr, time);
-    toast(time?('✓ Jam shoot diset: '+time):'Jam shoot dikosongkan','success');
-    loadAllSchedules();
-  }catch(e){
-    toast('Gagal simpan jam: '+e.message,'error');
   }
 }
 
@@ -1627,56 +1632,10 @@ function getPaketList(){ try{ return JSON.parse(localStorage.getItem('lensera_pa
 function savePaketList(list){ localStorage.setItem('lensera_paket',JSON.stringify(list)); }
 function paketLabel(p){ return p.name+(p.dur?' – '+p.dur:''); }
 
-// FIX BUG #5: sama seperti STAGES di atas — sekarang sync ke app_config (cloud).
-async function fetchSesiFromCloud(){
-  try{
-    const rows=await db('app_config',{filter:'&config_key=eq.sesi_list',select:'config_value'});
-    if(rows&&rows.length&&rows[0].config_value){
-      const list=JSON.parse(rows[0].config_value);
-      if(Array.isArray(list)&&list.length){ saveSesiList(list); return list; }
-    }
-    return getSesiList();
-  }catch(e){
-    toast('Gagal ambil tipe sesi terbaru dari server, pakai data lokal sementara.','warn');
-    return getSesiList();
-  }
-}
-async function saveSesiListToCloud(list){
-  saveSesiList(list);
-  const payload={config_key:'sesi_list',config_value:JSON.stringify(list),updated_at:new Date().toISOString()};
-  const url=SB_URL+'/rest/v1/app_config?config_key=eq.sesi_list';
-  const res=await fetch(url,{method:'PATCH',headers:{...H,'Prefer':'return=representation'},body:JSON.stringify(payload)});
-  const patched=await res.json();
-  if(!patched||!patched.length){ await dbPost('app_config',payload); }
-}
-async function fetchPaketFromCloud(){
-  try{
-    const rows=await db('app_config',{filter:'&config_key=eq.paket_list',select:'config_value'});
-    if(rows&&rows.length&&rows[0].config_value){
-      const list=JSON.parse(rows[0].config_value);
-      if(Array.isArray(list)&&list.length){ savePaketList(list); return list; }
-    }
-    return getPaketList();
-  }catch(e){
-    toast('Gagal ambil paket terbaru dari server, pakai data lokal sementara.','warn');
-    return getPaketList();
-  }
-}
-async function savePaketListToCloud(list){
-  savePaketList(list);
-  const payload={config_key:'paket_list',config_value:JSON.stringify(list),updated_at:new Date().toISOString()};
-  const url=SB_URL+'/rest/v1/app_config?config_key=eq.paket_list';
-  const res=await fetch(url,{method:'PATCH',headers:{...H,'Prefer':'return=representation'},body:JSON.stringify(payload)});
-  const patched=await res.json();
-  if(!patched||!patched.length){ await dbPost('app_config',payload); }
-}
-
-async function renderSesiList(){
-  const el=document.getElementById('sesi-list');
-  el.innerHTML='<div class="loading"><div class="spinner"></div>Memuat...</div>';
-  const list=await fetchSesiFromCloud();
+function renderSesiList(){
+  const list=getSesiList();
   document.getElementById('sesi-count').textContent=list.length+' sesi';
-  el.innerHTML=list.length
+  document.getElementById('sesi-list').innerHTML=list.length
     ? list.map((s,i)=>`<div style="display:flex;align-items:center;gap:.5rem;padding:7px 0;border-bottom:1px solid var(--border)">
         <div id="sesi-view-${i}" style="flex:1;display:flex;align-items:center"><span style="font-size:13px;color:var(--text)">${s}</span></div>
         <div id="sesi-edit-${i}" style="flex:1;display:none"><input type="text" id="sesi-input-${i}" value="${s}" style="font-size:12px;padding:5px 8px"></div>
@@ -1693,47 +1652,9 @@ function toggleSesiEdit(i){
   const isEditing=edit.style.display!=='none';
   view.style.display=isEditing?'flex':'none'; edit.style.display=isEditing?'none':'block'; btn.style.display=isEditing?'none':'inline-flex';
 }
-// FIX BUG #5: tarik list TERBARU dari cloud dulu sebelum ubah, supaya perubahan
-// dari device lain tidak ketimpa hilang (pola sama seperti staff).
-async function saveSesiEdit(i){
-  const val=document.getElementById('sesi-input-'+i).value.trim();
-  if(!val){toast('Nama sesi tidak boleh kosong!','error');return;}
-  const list=await fetchSesiFromCloud();
-  if(!list[i]){ toast('Data sudah berubah, memuat ulang...','warn'); renderSesiList(); return; }
-  list[i]=val;
-  try{ await saveSesiListToCloud(list); toast('Tipe sesi diperbarui!','success'); }catch(e){ toast('Gagal simpan: '+e.message,'error'); }
-  renderSesiList();
-}
-async function deleteSesi(i){
-  const list=await fetchSesiFromCloud();
-  if(!list[i]) { toast('Data sudah berubah, memuat ulang...','warn'); renderSesiList(); return; }
-  const name=list[i];
-  showModal('Hapus Tipe Sesi','Hapus "'+name+'"?',async()=>{
-    try{
-      const freshList=await fetchSesiFromCloud();
-      const idx=freshList.indexOf(name);
-      if(idx===-1){ toast('Tipe sesi sudah tidak ada.','warn'); renderSesiList(); return; }
-      freshList.splice(idx,1);
-      await saveSesiListToCloud(freshList);
-      toast('Tipe sesi dihapus','info');
-      renderSesiList();
-    }catch(e){ toast('Gagal hapus: '+e.message,'error'); }
-  });
-}
-async function addSesi(){
-  const input=document.getElementById('new-sesi-name');
-  const val=input.value.trim();
-  if(!val){toast('Isi nama tipe sesi dulu!','error');return;}
-  try{
-    const list=await fetchSesiFromCloud();
-    if(list.includes(val)){toast('Tipe sesi sudah ada!','error');return;}
-    list.push(val);
-    await saveSesiListToCloud(list);
-    input.value='';
-    toast('Tipe sesi "'+val+'" ditambahkan!','success');
-    renderSesiList();
-  }catch(e){ toast('Gagal menyimpan: '+e.message,'error'); }
-}
+function saveSesiEdit(i){ const list=getSesiList(); const val=document.getElementById('sesi-input-'+i).value.trim(); if(!val){toast('Nama sesi tidak boleh kosong!','error');return;} list[i]=val; saveSesiList(list); toast('Tipe sesi diperbarui!','success'); renderSesiList(); }
+function deleteSesi(i){ const list=getSesiList(); showModal('Hapus Tipe Sesi','Hapus "'+list[i]+'"?',()=>{ list.splice(i,1); saveSesiList(list); toast('Tipe sesi dihapus','info'); renderSesiList(); }); }
+function addSesi(){ const input=document.getElementById('new-sesi-name'); const val=input.value.trim(); if(!val){toast('Isi nama tipe sesi dulu!','error');return;} const list=getSesiList(); if(list.includes(val)){toast('Tipe sesi sudah ada!','error');return;} list.push(val); saveSesiList(list); input.value=''; toast('Tipe sesi "'+val+'" ditambahkan!','success'); renderSesiList(); }
 
 function refreshSesiDropdowns(){
   const list=getSesiList();
@@ -1745,12 +1666,10 @@ function refreshSesiDropdowns(){
 }
 
 // ─── PAKET ───────────────────────────────────────────────────────────────────
-async function renderPaketList(){
-  const el=document.getElementById('paket-list');
-  el.innerHTML='<div class="loading"><div class="spinner"></div>Memuat...</div>';
-  const list=await fetchPaketFromCloud();
+function renderPaketList(){
+  const list=getPaketList();
   document.getElementById('paket-count').textContent=list.length+' paket';
-  el.innerHTML=list.length
+  document.getElementById('paket-list').innerHTML=list.length
     ? list.map((p,i)=>`<div style="display:flex;align-items:center;gap:.5rem;padding:7px 0;border-bottom:1px solid var(--border)">
         <div id="paket-view-${i}" style="flex:1;display:flex;align-items:center;gap:6px">
           <span style="font-size:13px;color:var(--text);font-weight:500">${p.name}</span>
@@ -1769,46 +1688,9 @@ async function renderPaketList(){
 }
 
 function togglePaketEdit(i){ const view=document.getElementById('paket-view-'+i), edit=document.getElementById('paket-edit-'+i), btn=document.getElementById('paket-save-btn-'+i); const isEditing=edit.style.display!=='none'; view.style.display=isEditing?'flex':'none'; edit.style.display=isEditing?'none':'flex'; btn.style.display=isEditing?'none':'inline-flex'; }
-// FIX BUG #5: fetch-modify-save ke cloud, sama pola dengan staff/sesi.
-async function savePaketEdit(i){
-  const name=document.getElementById('paket-name-'+i).value.trim();
-  const dur=document.getElementById('paket-dur-'+i).value.trim();
-  if(!name){toast('Nama paket tidak boleh kosong!','error');return;}
-  const list=await fetchPaketFromCloud();
-  if(!list[i]){ toast('Data sudah berubah, memuat ulang...','warn'); renderPaketList(); return; }
-  list[i]={name,dur};
-  try{ await savePaketListToCloud(list); toast('Paket diperbarui!','success'); }catch(e){ toast('Gagal simpan: '+e.message,'error'); }
-  renderPaketList();
-}
-async function deletePaket(i){
-  const list=await fetchPaketFromCloud();
-  if(!list[i]){ toast('Data sudah berubah, memuat ulang...','warn'); renderPaketList(); return; }
-  const label=paketLabel(list[i]), name=list[i].name;
-  showModal('Hapus Paket','Hapus "'+label+'"?',async()=>{
-    try{
-      const freshList=await fetchPaketFromCloud();
-      const idx=freshList.findIndex(p=>p.name===name);
-      if(idx===-1){ toast('Paket sudah tidak ada.','warn'); renderPaketList(); return; }
-      freshList.splice(idx,1);
-      await savePaketListToCloud(freshList);
-      toast('Paket dihapus','info');
-      renderPaketList();
-    }catch(e){ toast('Gagal hapus: '+e.message,'error'); }
-  });
-}
-async function addPaket(){
-  const nEl=document.getElementById('new-paket-name'), dEl=document.getElementById('new-paket-dur');
-  const name=nEl.value.trim(), dur=dEl.value.trim();
-  if(!name){toast('Isi nama paket dulu!','error');return;}
-  try{
-    const list=await fetchPaketFromCloud();
-    list.push({name,dur});
-    await savePaketListToCloud(list);
-    nEl.value=''; dEl.value='';
-    toast('Paket "'+name+'" ditambahkan!','success');
-    renderPaketList();
-  }catch(e){ toast('Gagal menyimpan: '+e.message,'error'); }
-}
+function savePaketEdit(i){ const list=getPaketList(); const name=document.getElementById('paket-name-'+i).value.trim(); const dur=document.getElementById('paket-dur-'+i).value.trim(); if(!name){toast('Nama paket tidak boleh kosong!','error');return;} list[i]={name,dur}; savePaketList(list); toast('Paket diperbarui!','success'); renderPaketList(); }
+function deletePaket(i){ const list=getPaketList(); showModal('Hapus Paket','Hapus "'+paketLabel(list[i])+'"?',()=>{ list.splice(i,1); savePaketList(list); toast('Paket dihapus','info'); renderPaketList(); }); }
+function addPaket(){ const nEl=document.getElementById('new-paket-name'), dEl=document.getElementById('new-paket-dur'); const name=nEl.value.trim(), dur=dEl.value.trim(); if(!name){toast('Isi nama paket dulu!','error');return;} const list=getPaketList(); list.push({name,dur}); savePaketList(list); nEl.value=''; dEl.value=''; toast('Paket "'+name+'" ditambahkan!','success'); renderPaketList(); }
 
 function refreshPaketDropdowns(){
   const list=getPaketList();
@@ -1820,10 +1702,8 @@ function refreshPaketDropdowns(){
 }
 
 // ─── SETTINGS: WORKFLOW STAGES ───────────────────────────────────────────────
-async function renderStagesList(){
-  const el=document.getElementById('stages-list');
-  el.innerHTML='<div class="loading"><div class="spinner"></div>Memuat...</div>';
-  STAGES=await fetchStagesFromCloud();
+function renderStagesList(){
+  STAGES=getStages();
   document.getElementById('stages-count').textContent=STAGES.length+' tahap';
   document.getElementById('stages-list').innerHTML=STAGES.map((s,i)=>{
     const isFirst=i===0, isLast=i===STAGES.length-1;
@@ -1849,57 +1729,10 @@ async function renderStagesList(){
 }
 
 function toggleStageEdit(i){ const view=document.getElementById('stage-view-'+i), edit=document.getElementById('stage-edit-'+i), btn=document.getElementById('stage-save-btn-'+i); const isEditing=edit.style.display!=='none'; view.style.display=isEditing?'flex':'none'; edit.style.display=isEditing?'none':'block'; btn.style.display=isEditing?'none':'inline-flex'; }
-// FIX BUG #5: PENTING — status project disimpan sebagai index angka ke STAGES.
-// Kalau STAGES beda antar device, index yang sama bisa nunjuk ke tahap yang
-// beda -> status project salah total. Sekarang semua perubahan STAGES fetch
-// fresh dari cloud dulu, simpan balik ke cloud, baru update variabel global.
-async function saveStageEdit(i){
-  const val=document.getElementById('stage-input-'+i).value.trim();
-  if(!val){toast('Nama tahap tidak boleh kosong!','error');return;}
-  const list=await fetchStagesFromCloud();
-  if(!list[i]){ toast('Data sudah berubah, memuat ulang...','warn'); renderStagesList(); return; }
-  list[i]=val;
-  try{ await saveStagesToCloud(list); STAGES=list; toast('Tahap diperbarui!','success'); }catch(e){ toast('Gagal simpan: '+e.message,'error'); }
-  renderStagesList();
-}
-async function deleteStage(i){
-  const list=await fetchStagesFromCloud();
-  if(list.length<=2){toast('Minimal 2 tahap!','error');return;}
-  if(!list[i]){ toast('Data sudah berubah, memuat ulang...','warn'); renderStagesList(); return; }
-  const name=list[i];
-  showModal('Hapus Tahap','Hapus "'+name+'"? Peringatan: project yang statusnya merujuk ke tahap ini atau tahap sesudahnya bisa menampilkan status yang bergeser.',async()=>{
-    try{
-      const freshList=await fetchStagesFromCloud();
-      if(freshList.length<=2){ toast('Minimal 2 tahap!','error'); renderStagesList(); return; }
-      freshList.splice(i,1);
-      await saveStagesToCloud(freshList);
-      STAGES=freshList;
-      toast('Tahap dihapus','info');
-      renderStagesList();
-    }catch(e){ toast('Gagal hapus: '+e.message,'error'); }
-  });
-}
-async function moveStage(i,dir){
-  const list=await fetchStagesFromCloud();
-  const j=i+dir; if(j<0||j>=list.length)return;
-  [list[i],list[j]]=[list[j],list[i]];
-  try{ await saveStagesToCloud(list); STAGES=list; }catch(e){ toast('Gagal simpan urutan: '+e.message,'error'); }
-  renderStagesList();
-}
-async function addStage(){
-  const nEl=document.getElementById('new-stage-name'), pos=document.getElementById('new-stage-pos').value;
-  const val=nEl.value.trim();
-  if(!val){toast('Isi nama tahap dulu!','error');return;}
-  try{
-    const list=await fetchStagesFromCloud();
-    if(pos==='start')list.unshift(val); else list.push(val);
-    await saveStagesToCloud(list);
-    STAGES=list;
-    nEl.value='';
-    toast('Tahap "'+val+'" ditambahkan!','success');
-    renderStagesList();
-  }catch(e){ toast('Gagal menyimpan: '+e.message,'error'); }
-}
+function saveStageEdit(i){ const list=getStages(); const val=document.getElementById('stage-input-'+i).value.trim(); if(!val){toast('Nama tahap tidak boleh kosong!','error');return;} list[i]=val; saveStages(list); STAGES=list; toast('Tahap diperbarui!','success'); renderStagesList(); }
+function deleteStage(i){ const list=getStages(); if(list.length<=2){toast('Minimal 2 tahap!','error');return;} showModal('Hapus Tahap','Hapus "'+list[i]+'"?',()=>{ list.splice(i,1); saveStages(list); STAGES=list; toast('Tahap dihapus','info'); renderStagesList(); }); }
+function moveStage(i,dir){ const list=getStages(); const j=i+dir; if(j<0||j>=list.length)return; [list[i],list[j]]=[list[j],list[i]]; saveStages(list); STAGES=list; renderStagesList(); }
+function addStage(){ const nEl=document.getElementById('new-stage-name'), pos=document.getElementById('new-stage-pos').value; const val=nEl.value.trim(); if(!val){toast('Isi nama tahap dulu!','error');return;} const list=getStages(); if(pos==='start')list.unshift(val); else list.push(val); saveStages(list); STAGES=list; nEl.value=''; toast('Tahap "'+val+'" ditambahkan!','success'); renderStagesList(); }
 
 function refreshStagesDropdowns(){
   const projFilter=document.getElementById('proj-filter');
@@ -2086,22 +1919,51 @@ async function submitImportWa(){
 }
 
 
+// ─── SET JAM BOOKING DARI JADWAL ─────────────────────────────────────────────
+function toggleSetJam(id, currentTime){
+  const panel = document.getElementById('setjam-'+id);
+  if(!panel) return;
+  const isVisible = panel.style.display === 'block';
+  // Tutup semua panel lain dulu
+  document.querySelectorAll('[id^="setjam-"]').forEach(el=>{ if(el.tagName==='DIV') el.style.display='none'; });
+  if(!isVisible){
+    panel.style.display='block';
+    const inp = document.getElementById('setjam-input-'+id);
+    if(inp && currentTime) inp.value = currentTime;
+    if(inp) inp.focus();
+  }
+}
+
+async function saveJamBooking(id){
+  const inp = document.getElementById('setjam-input-'+id);
+  if(!inp) return;
+  const t = inp.value;
+  if(!t){ toast('Isi jam dulu!','error'); return; }
+  const time = t.slice(0,5);
+  const d = document.getElementById('slot-date').value;
+  if(!d){ toast('Pilih tanggal dulu!','error'); return; }
+  // Ambil nama client dari row item
+  const nameEl = document.querySelector('#sbi-'+id+' [style*="font-weight:500"]');
+  const clientName = nameEl ? nameEl.textContent.trim() : '';
+  try{
+    // Cek apakah sudah ada slot untuk client ini di tanggal ini
+    const existing = await db('slots',{filter:`&slot_date=eq.${d}&client_name=eq.${encodeURIComponent(clientName)}`,select:'id'});
+    if(existing && existing.length){
+      // Update slot yang sudah ada, jangan buat baru (hindari duplikasi)
+      await dbPatch('slots','id=eq.'+existing[0].id,{slot_time:time});
+    } else {
+      await dbPost('slots',{slot_date:d,slot_time:time,client_name:clientName});
+    }
+    toast('✓ Jam shoot diset: '+time,'success');
+    document.getElementById('setjam-'+id).style.display='none';
+    loadAllSchedules();
+  }catch(e){
+    toast('Gagal simpan jam: '+e.message,'error');
+  }
+}
+
 // ─── ABSEN CREW ───────────────────────────────────────────────────────────────
 function getYearMonth(d){ const dt=d?new Date(d):new Date(); return dt.getFullYear()+'-'+String(dt.getMonth()+1).padStart(2,'0'); }
-
-// FIX BUG #8: kode lama pakai ym+'-31' sebagai batas akhir bulan. Postgres nolak
-// tanggal ini untuk Februari/April/Juni/September/November (gak punya tanggal 31)
-// -> query error, dan errornya ketelan diam-diam jadi keliatan kayak datanya
-// kosong. Fixnya: hitung tanggal 1 bulan BERIKUTNYA, lalu pakai operator "lt"
-// (exclusive) supaya gak perlu tahu jumlah hari tiap bulan sama sekali.
-function monthRangeExclusive(ym){
-  const [y,m] = ym.split('-').map(Number);
-  const start = ym+'-01';
-  // bulan JS 0-based: new Date(y, m, 1) = tanggal 1 bulan berikutnya dari bulan ke-m (1-based)
-  const nextD = new Date(y, m, 1);
-  const end = nextD.getFullYear()+'-'+String(nextD.getMonth()+1).padStart(2,'0')+'-01';
-  return {start, end};
-}
 
 function initAbsenPage(){
   const s = getSession();
@@ -2141,25 +2003,17 @@ function syncAbsenHari(){
   hari.value = days[d.getDay()];
 }
 
-// FIX BUG #8: dulu error di 5 dari 12 bulan (lihat monthRangeExclusive di atas),
-// dan errornya ketelan diam-diam (catch return []) -> kuota kelihatan kosong
-// padahal query-nya gagal, jadi orang bisa ngajuin izin lebih dari 5x tanpa
-// ke-block. Sekarang: pakai range yang benar, DAN kalau query tetap gagal
-// (misal network error), return null (bukan []) supaya pemanggil tahu ini
-// kegagalan, bukan "memang belum ada izin".
 async function getAbsenBulanIni(nama){
   const ym = getYearMonth();
-  const {start,end} = monthRangeExclusive(ym);
+  const start = ym+'-01';
+  const end = ym+'-31';
   try{
     const rows = await db('crew_absen',{
-      filter:`&crew_name=eq.${encodeURIComponent(nama)}&tanggal_libur=gte.${start}&tanggal_libur=lt.${end}`,
+      filter:`&crew_name=eq.${encodeURIComponent(nama)}&tanggal_libur=gte.${start}&tanggal_libur=lte.${end}`,
       order:'tanggal_libur.asc'
     });
     return rows||[];
-  }catch(e){
-    toast('Gagal mengecek kuota izin bulan ini, coba refresh halaman.','error');
-    return null; // sinyal gagal, BUKAN "kuota 0" — jangan sampai dianggap boleh ajukan
-  }
+  }catch(e){ return []; }
 }
 
 async function loadAbsenList(){
@@ -2173,14 +2027,6 @@ async function loadAbsenList(){
 
   listEl.innerHTML = '<div class="loading"><div class="spinner"></div>Memuat...</div>';
   const rows = await getAbsenBulanIni(s.name);
-  if(rows===null){
-    // Gagal ambil data — jangan tampilkan seolah kuota 0/kosong, dan matikan
-    // tombol ajukan supaya gak ada yang nembus kuota gara-gara data gak kebaca.
-    listEl.innerHTML='<div class="empty">Gagal memuat data kuota. Coba refresh halaman.</div>';
-    if(quotaBadge) quotaBadge.textContent='? / 5';
-    if(submitBtn){ submitBtn.disabled=true; submitBtn.style.opacity='.5'; }
-    return;
-  }
   const used = rows.length;
   const limit = 5;
   const sisa = limit - used;
@@ -2239,10 +2085,6 @@ async function submitAbsen(){
 
   // Cek quota
   const existing = await getAbsenBulanIni(nama);
-  if(existing===null){
-    toast('Gagal mengecek kuota izin, coba lagi. Pengajuan dibatalkan demi keamanan kuota.','error');
-    return;
-  }
   if(existing.length >= 5){
     toast('Batas 5x izin bulan ini sudah tercapai!','error');
     return;
@@ -2284,11 +2126,12 @@ async function loadAbsenAll(){
 
   const bln = document.getElementById('absen-filter-bulan');
   const ym = (bln&&bln.value) ? bln.value : getYearMonth();
-  const {start,end} = monthRangeExclusive(ym);
+  const start = ym+'-01';
+  const end = ym+'-31';
 
   try{
     const rows = await db('crew_absen',{
-      filter:`&tanggal_libur=gte.${start}&tanggal_libur=lt.${end}`,
+      filter:`&tanggal_libur=gte.${start}&tanggal_libur=lte.${end}`,
       order:'tanggal_libur.asc',
       limit:200
     });
