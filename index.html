@@ -952,18 +952,7 @@ function showModal(title,body,cb){
 function closeModal(){ document.getElementById('modal-bg').classList.remove('show'); }
 
 // ─── NAV ─────────────────────────────────────────────────────────────────────
-// FIX BUG #10: ROLE_PERMS dulu cuma dideklarasikan tapi gak pernah dipakai —
-// pembatasan akses selama ini cuma "kosmetik" lewat NAV_HIDDEN (nyembunyiin
-// tombol menu). Editor/admin yang buka Console browser dan ketik
-// goPage('settings') manual tetap bisa masuk halaman yang harusnya terlarang.
-// Sekarang goPage() sendiri yang menegakkan ROLE_PERMS, jadi diakses langsung
-// dari console pun tetap diblokir — bukan cuma nyembunyiin tombolnya doang.
 function goPage(id, el){
-  const role = document.body.dataset.role;
-  if(role && ROLE_PERMS[role] && !ROLE_PERMS[role].includes(id)){
-    toast('Kamu tidak punya akses ke halaman ini.','error');
-    return;
-  }
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
   document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
   document.getElementById('page-'+id).classList.add('active');
@@ -1284,7 +1273,7 @@ async function loadProjects(){
             ${p.shoot_date?`<button class="btn btn-sm" onclick="jumpToSchedule('${p.shoot_date}')" style="color:var(--neon);border-color:rgba(57,224,155,.3);font-size:11px">📅 Jadwal</button>`:''}
             <button class="btn btn-sm" onclick="toggleEditPanel('${p.id}')" style="color:var(--accent2);border-color:rgba(124,106,247,.3)">✎ Edit</button>
             ${p.status<STAGES.length-1?`<button class="btn btn-sm btn-neon" onclick="nextStage('${p.id}',${p.status})">Lanjut →</button>`:''}
-            <button class="btn btn-sm btn-danger" onclick="deleteProject('${p.id}','${escJs(p.name)}')">Hapus</button>
+            <button class="btn btn-sm btn-danger" onclick="deleteProject('${p.id}','${p.name}')">Hapus</button>
           </div>
         </div>
         <div id="edit-panel-${p.id}" style="display:none;margin-top:.875rem;padding-top:.875rem;border-top:1px solid var(--border)">
@@ -1364,23 +1353,7 @@ function toggleEditPanel(id){
 // seperti mekanisme "Set Jam" di halaman Jadwal. Kalau jam dikosongkan, slot
 // lama yang cocok akan dihapus supaya tidak nyangkut/nampilin jam basi.
 // Escape string biar aman ditaruh di dalam onclick='...' (single-quoted JS string)
-// FIX BUG #12 (bagian escape kutip): escJs() sebelumnya cuma dipakai di 1 tempat
-// (saveJamRow) dan cuma escape backslash + petik satu. Tempat lain (deleteProject,
-// deleteSlot, approveAbsen, showTolakAbsen) menyisipkan nama client/crew mentah-mentah
-// ke dalam atribut onclick="..." — kalau nama mengandung petik satu (') itu bikin JS
-// error saat tombol diklik (fungsi gagal jalan total), dan kalau mengandung petik dua (")
-// itu bisa memutus atribut HTML lebih awal (cikal-bakal injection, terkait bug #11).
-// Sekarang escJs() meng-encode HTML-entity dulu (&, <, >, ") baru escape JS (\, ') —
-// dipakai konsisten di semua tempat yang menyisipkan data dinamis ke dalam onclick.
-function escJs(str){
-  return String(str||'')
-    .replace(/&/g,'&amp;')
-    .replace(/</g,'&lt;')
-    .replace(/>/g,'&gt;')
-    .replace(/"/g,'&quot;')
-    .replace(/\\/g,'\\\\')
-    .replace(/'/g,"\\'");
-}
+function escJs(str){ return String(str||'').replace(/\\/g,'\\\\').replace(/'/g,"\\'"); }
 
 async function upsertShootTime(clientName, shootDate, shootTime){
   if(!clientName || !shootDate) return; // tidak bisa kelola slot tanpa nama & tanggal
@@ -1567,7 +1540,7 @@ async function loadAllSchedules(){
           <span style="font-family:var(--font-head);font-size:12px;font-weight:600;color:var(--accent2);min-width:46px">${displayTime}</span>
           <span style="font-size:13px;color:var(--text);flex:1">${s.client_name||'—'}</span>
           <span class="badge b-purple" style="font-size:9px;flex-shrink:0">Manual</span>
-          <button class="btn btn-sm btn-danger" style="padding:2px 7px;font-size:10px;flex-shrink:0" onclick="deleteSlot('${s.id}','${displayTime}','${escJs(s.client_name)}')">×</button>
+          <button class="btn btn-sm btn-danger" style="padding:2px 7px;font-size:10px;flex-shrink:0" onclick="deleteSlot('${s.id}','${displayTime}','${(s.client_name||'').replace(/'/g,"\\'")}')">×</button>
         </div>`;
       });
 
@@ -2339,8 +2312,8 @@ async function loadAbsenAll(){
             <span style="font-size:12px;color:var(--text2);flex:1">${fmtDate(r.tanggal_libur)} — ${r.alasan}</span>
             ${(s.role==='owner'||s.role==='admin')?`
               <span class="badge ${r.status==='approved'?'b-neon':r.status==='ditolak'?'b-danger':'b-warn'}" style="font-size:10px;flex-shrink:0">${r.status==='approved'?'✓ Disetujui':r.status==='ditolak'?'✗ Ditolak':'⏳ Pending'}</span>
-              ${r.status!=='approved'?`<button class="btn btn-sm btn-neon" style="font-size:10px;padding:3px 8px" title="Setujui" onclick="approveAbsen('${r.id}','${escJs(r.crew_name)}','${r.tanggal_libur}')">✓</button>`:''}
-              ${r.status!=='ditolak'?`<button class="btn btn-sm btn-danger" style="font-size:10px;padding:3px 8px" title="Tolak" onclick="showTolakAbsen('${r.id}','${escJs(r.crew_name)}','${r.tanggal_libur}')">✗</button>`:''}
+              ${r.status!=='approved'?`<button class="btn btn-sm btn-neon" style="font-size:10px;padding:3px 8px" title="Setujui" onclick="approveAbsen('${r.id}','${r.crew_name}','${r.tanggal_libur}')">✓</button>`:''}
+              ${r.status!=='ditolak'?`<button class="btn btn-sm btn-danger" style="font-size:10px;padding:3px 8px" title="Tolak" onclick="showTolakAbsen('${r.id}','${r.crew_name}','${r.tanggal_libur}')">✗</button>`:''}
               ${s.role==='owner'?`<button class="btn btn-sm" style="font-size:10px;padding:3px 6px;color:var(--text3)" title="Hapus" onclick="deleteAbsen('${r.id}')">🗑</button>`:''}
             `:''}
           </div>`).join('')}
